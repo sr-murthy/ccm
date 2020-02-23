@@ -4,6 +4,7 @@ __all__ = [
 
 
 from typing import (
+    Any,
     AsyncGenerator,
     Callable,
     Coroutine,
@@ -17,6 +18,9 @@ from collections import OrderedDict
 from itertools import product
 
 import networkx as nx
+import numpy as np
+import pygraphviz as pvz
+import scipy as sp
 
 from networkx import DiGraph
 
@@ -27,7 +31,9 @@ class XBytecodeGraph(DiGraph):
 
     def __init__(
         self,
-        x: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]] = None
+        incoming_graph_data: Optional[Union[list, dict, nx.Graph, np.ndarray, np.matrix, sp.sparse.spmatrix, pvz.AGraph]] = None,
+        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]] = None,
+        **attr: Any
     ) -> None:
         """
         A CPython "bytecode"-aware directed graph representing the CPython
@@ -35,11 +41,15 @@ class XBytecodeGraph(DiGraph):
         generator, coroutine, class, string of source code, or code
         object (as returned by compile()).
         """
+        if incoming_graph_data:
+            super(self.__class__, self).__init__(incoming_graph_data, **attr)
+            return
+
         super(self.__class__, self).__init__()
 
-        self._x = x
-        if self._x is not None:
-            self._xbytecode = XBytecode(x)
+        self._code = code
+        if self._code:
+            self._xbytecode = XBytecode(self._code)
 
             instr_map = self._xbytecode.instr_map
 
@@ -52,14 +62,8 @@ class XBytecodeGraph(DiGraph):
                     self.add_edge(instr_a.offset, 0)
 
     @property
-    def x(self):
-        return self._x
-
-    @x.setter
-    def x(self, _x):
-        self._x = _x
-        if self._x is not None:
-            self._xbytecode = XBytecode(x)
+    def code(self):
+        return self.code
 
     @property
     def xbytecode(self):
