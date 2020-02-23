@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.drawing.nx_agraph import graphviz_layout
 
-from .graphs import BytecodeGraph
+from .graphs import XBytecodeGraph
 
 
 def draw_graph(
-    G: BytecodeGraph,
+    G: XBytecodeGraph,
     **draw_options: Any
 ) -> mp.figure.Figure:
     """

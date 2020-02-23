@@ -372,7 +372,7 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
     """
     labels = findlabels(code)
     starts_line = None
-    last_three = []
+    last_four = []
     for offset, op, arg in _unpack_opargs(code):
         if linestarts is not None:
             starts_line = linestarts.get(offset, None)
@@ -419,11 +419,11 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
         if not is_exit_point:
             try:
                 is_exit_point = (
-                    ((opname[op]  == 'CALL_METHOD') and
-                    ((opname[last_three[0][1]] == 'LOAD_GLOBAL' and _get_name_info(last_three[0][2], names)[0] == 'sys') and
-                    (opname[last_three[1][1]] == 'LOAD_METHOD' and _get_name_info(last_three[1][2], names)[0] == 'exit'))) or
-                    ((opname[last_three[1][1]] == 'LOAD_GLOBAL' and _get_name_info(last_three[1][2], names)[0] == 'sys') and
-                    (opname[last_three[2][1]] == 'LOAD_METHOD' and _get_name_info(last_three[2][2], names)[0] == 'exit'))
+                    (opname[op]  == 'POP_TOP') and
+                    ((opname[last_four[0][1]] == 'LOAD_GLOBAL' and _get_name_info(last_four[0][2], names)[0] == 'sys') and
+                    (opname[last_four[1][1]] == 'LOAD_METHOD' and _get_name_info(last_four[1][2], names)[0] == 'exit')) or
+                    ((opname[last_four[1][1]] == 'LOAD_GLOBAL' and _get_name_info(last_four[1][2], names)[0] == 'sys') and
+                    (opname[last_four[2][1]] == 'LOAD_METHOD' and _get_name_info(last_four[2][2], names)[0] == 'exit'))
                 )
             except IndexError:
                 pass
@@ -443,8 +443,8 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
             is_exit_point=is_exit_point
         )
 
-        last_three.append((offset, op, arg))
-        last_three = last_three[-3:]
+        last_four.append((offset, op, arg))
+        last_four = last_four[-4:]
 
 
 def disassemble(co, lasti=-1, *, file=None):
