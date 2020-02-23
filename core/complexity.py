@@ -11,6 +11,7 @@ import typing
 
 from dis import (
     Bytecode,
+    Instruction,
 )
 from typing import (
     Any,
@@ -18,6 +19,7 @@ from typing import (
     Callable,
     Coroutine,
     Generator,
+    Optional,
     Tuple,
     TypeVar,
     Union,
@@ -57,7 +59,7 @@ class BytecodeGraph(DiGraph):
 
     def __init__(
         self,
-        x: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+        x: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]] = None,
     ) -> None:
         """
         A CPython "bytecode"-aware directed graph representing the CPython
@@ -67,21 +69,26 @@ class BytecodeGraph(DiGraph):
         """
         super(self.__class__, self).__init__()
 
-        self._x = x
-        self._instr_map, self._bytecode = self.get_instruction_map(x)
+        if x is not None:
+            self._x = x
+            self._instr_map, self._bytecode = self.get_instruction_map(x)
 
-        for offset_a, offset_b in product(self._instr_map, self._instr_map): 
-            instr_a, instr_b = self._instr_map[offset_a], self._instr_map[offset_b] 
-            if offset_b - 2 == offset_a and instr_a.opname not in ['RAISE_VARARGS', 'RETURN_VALUE']: 
-                self.add_edge(offset_a, offset_b) 
-            if instr_b.is_jump_target and instr_a.arg == offset_b: 
-                self.add_edge(offset_a, offset_b)
-            if instr_a.opname == 'RETURN_VALUE':
-                self.add_edge(offset_a, 0)
+            for offset_a, offset_b in product(self._instr_map, self._instr_map): 
+                instr_a, instr_b = self._instr_map[offset_a], self._instr_map[offset_b] 
+                if offset_b - 2 == offset_a and instr_a.opname not in ['RAISE_VARARGS', 'RETURN_VALUE']: 
+                    self.add_edge(offset_a, offset_b) 
+                if instr_b.is_jump_target and instr_a.arg == offset_b: 
+                    self.add_edge(offset_a, offset_b)
+                if instr_a.opname == 'RETURN_VALUE':
+                    self.add_edge(offset_a, 0)
 
     @property
     def x(self):
         return self._x
+
+    @x.setter
+    def x(self, _x):
+        self._x = _x
 
     @property
     def bytecode(self):

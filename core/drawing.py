@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.drawing.nx_agraph import graphviz_layout
 
-from .complexity import BytecodeGraph
+from .graphs import BytecodeGraph
 
 
 def draw_graph(
@@ -24,7 +24,7 @@ def draw_graph(
     """
     labels = OrderedDict(
         (offset, f'#{instr.starts_line or ""}: {instr.opname} ({instr.argrepr})')
-        for offset, instr in G.instr_map.items()
+        for offset, instr in G.xbytecode.instr_map.items()
     )
 
     draw_options = {
@@ -32,7 +32,7 @@ def draw_graph(
             'layout': 'graphviz',
             'node_shape': 's',
             'node_color': 'skyblue',
-            'node_size': 1000,
+            'node_size': 50,
             'font_size': 6,
             'labels': labels,
             'edge_color': 'black',
@@ -51,6 +51,8 @@ def draw_graph(
     nx.draw_networkx_edges(G, pos, **draw_options)
 
     plt.draw()
+    plt.show()
+
     fig = plt.gcf()
 
     return fig
