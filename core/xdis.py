@@ -17,6 +17,7 @@ import io
 from opcode import *
 from opcode import __all__ as _opcodes_all
 
+from .exceptions import CCMError
 from .utils import pairwise
 
 
@@ -421,7 +422,7 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
         is_decision_point = DECISION_OPS.get(op) is not None
         if not is_decision_point:
             try:
-                is_decision_point = (BRANCH_OPS.get(succ[0]) is not None and CALL_OPS.get(op) is not None)
+                is_decision_point = (BRANCH_OPS.get(succ[1]) is not None and CALL_OPS.get(op) is not None)
             except (IndexError, KeyError, TypeError):
                 pass
         is_branch_point = BRANCH_OPS.get(op) is not None
@@ -579,7 +580,7 @@ def findlinestarts(code):
         yield (addr, lineno)
 
 
-class XBytecode:
+class XBytecode(object):
     """The bytecode operations of a piece of code
 
     Instantiate this with a function, method, other compiled object, string of
@@ -588,7 +589,15 @@ class XBytecode:
     Iterating over this yields the bytecode operations as XInstruction instances.
     """
     def __init__(self, x, *, first_line=None, current_offset=None):
-        self.codeobj = co = _get_code_object(x)
+        try:
+            self.codeobj = co = _get_code_object(x)
+        except (TypeError, ValueError):
+            raise CCMError(
+                'Invalid type for code argument - must be either a method, class '
+                'or callable, sychronous or asychronous generator, coroutine, '
+                'a string of source code or code object compiled from source '
+                'code'
+            )
         if first_line is None:
             self.first_line = co.co_firstlineno
             self._line_offset = 0
@@ -632,6 +641,10 @@ class XBytecode:
     @property
     def instr_map(self):
         return self._instr_map
+
+    @instr_map.setter
+    def instr_map(self, _map):
+        self._instr_map = _map
 
     @classmethod
     def from_traceback(cls, tb):
