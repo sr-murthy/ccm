@@ -20,6 +20,15 @@ __all__ = [
     'mccabe_generalised_complexity',
 ]
 
+from typing import (
+    AsyncGenerator,
+    Callable,
+    Coroutine,
+    Generator,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 from .graphs import XBytecodeGraph
 

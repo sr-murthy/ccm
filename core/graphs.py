@@ -71,7 +71,7 @@ class XBytecodeGraph(DiGraph):
         self,
         nodes: Optional[Iterable] = None,
         edges: Optional[Iterable] = None
-    ) -> XBytecodeGraph:
+    ) -> DiGraph:
         """
         Gets a subgraph of ``self`` containing only those nodes or edges
         provided by the corresponding optional arguments, and with an
