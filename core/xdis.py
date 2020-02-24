@@ -17,8 +17,12 @@ import io
 from opcode import *
 from opcode import __all__ as _opcodes_all
 
+from .utils import pairwise
+
+
 __all__ = [
     "BRANCH_OPS",
+    "CALL_OPS",
     "code_info",
     "DECISION_OPS",
     "dis",
@@ -49,6 +53,7 @@ FORMAT_VALUE_CONVERTERS = (
 MAKE_FUNCTION = opmap['MAKE_FUNCTION']
 MAKE_FUNCTION_FLAGS = ('defaults', 'kwdefaults', 'annotations', 'closure')
 
+CALL_OPS = {op: _opname for op, _opname in zip(range(len(opname)), opname) if _opname.startswith('CALL')}
 DECISION_OPS = {op: _opname for op, _opname in zip(range(len(opname)), opname) if 'COMPARE' in _opname}
 BRANCH_OPS = {op: _opname for op, _opname in zip(range(len(opname)), opname) if 'JUMP' in _opname}
 EXIT_OPS = {op: _opname for op, _opname in zip(range(len(opname)), opname) if _opname in ['RETURN_VALUE', 'RAISE_VARARGS']}
@@ -373,7 +378,7 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
     labels = findlabels(code)
     starts_line = None
     last_four = []
-    for offset, op, arg in _unpack_opargs(code):
+    for (offset, op, arg), succ in pairwise(_unpack_opargs(code)):
         if linestarts is not None:
             starts_line = linestarts.get(offset, None)
             if starts_line is not None:
@@ -414,6 +419,11 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
                                     if arg & (1<<i))
 
         is_decision_point = DECISION_OPS.get(op) is not None
+        if not is_decision_point:
+            try:
+                is_decision_point = (BRANCH_OPS.get(succ[0]) is not None and CALL_OPS.get(op) is not None)
+            except (IndexError, KeyError, TypeError):
+                pass
         is_branch_point = BRANCH_OPS.get(op) is not None
         is_exit_point = EXIT_OPS.get(op) is not None
         if not is_exit_point:
@@ -445,6 +455,7 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
 
         last_four.append((offset, op, arg))
         last_four = last_four[-4:]
+
 
 
 def disassemble(co, lasti=-1, *, file=None):

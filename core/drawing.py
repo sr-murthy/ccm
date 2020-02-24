@@ -23,7 +23,7 @@ def draw_graph(
     using ``matplotlib.pyplot``, and also returns the figure.
     """
     labels = OrderedDict(
-        (offset, f'#{instr.starts_line or ""}: {instr.opname} ({instr.argrepr})')
+        (offset, f'{instr.offset}: {instr.opname} ({instr.starts_line or ""}, {instr.argrepr})')
         for offset, instr in G.xbytecode.instr_map.items()
     )
 

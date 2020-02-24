@@ -1,154 +1,63 @@
+"""
+Cyclomatic complexity measures of Python source code or code objects, including
+
+::
+
+    1. McCabe complexity (V(G) = #{edges} - #{nodes} + 1)
+    2. Generalised McCabe complexity (V(G) = #{edges} - #{nodes} + 2 * #{connected components})
+    3. Henderson-Sellers complexity (V(G) = #{edges} - #{nodes} + #{connected components} + 1)
+    4. Henderson-Sellers & Tegarden complexity (V(G) = #{edges} - #{nodes} + #{connected components})
+    5. Generalised Henderson-Sellers & Tegarden complexity (V(G) = #{edges} - #{nodes} + #{exit points per component} + 2)
+    6. Harrison complexity (V(G) = #{decision points} - #{exit points} + 2)
+"""
+
 __all__ = [
-    'BytecodeGraph',
-    'mccabe_complexity',
+    'harrison_complexity',
     'henderson_sellers_complexity',
     'henderson_sellers_tegarden_complexity',
-    'feghali_watson_complexity'
+    'henderson_sellers_tegarden_generalised_complexity',
+    'mccabe_complexity',
+    'mccabe_generalised_complexity',
 ]
 
-import dis
-import typing
 
-from dis import (
-    Bytecode,
-    Instruction,
-)
-from typing import (
-    Any,
-    AsyncGenerator,
-    Callable,
-    Coroutine,
-    Generator,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
-
-from collections import OrderedDict
-from itertools import product
-
-import networkx as nx
-
-from networkx import DiGraph
+from .graphs import XBytecodeGraph
 
 
-class BytecodeGraph(DiGraph):
-
-    @classmethod
-    def get_instruction_map(
-        cls,
-        x: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
-    ) -> Tuple[OrderedDict, Bytecode]:
-        bytecode = Bytecode(x)
-
-        return OrderedDict((instr.offset, instr) for instr in bytecode), bytecode
-
-    @classmethod
-    def get_exit_points(cls, instr_map: OrderedDict) -> Generator:
-        for offset, instr in instr_map.items():
-            if instr.opname in ['RAISE_VARARGS', 'RETURN_VALUE']:
-                yield offset
-            if instr.opname == 'LOAD_GLOBAL' and instr.argval == 'sys':
-                next_three = [instr_map.get(offset + 2), instr_map.get(offset + 4), instr_map.get(offset + 6)]
-                if next_three[0].opname == 'LOAD_METHOD' and next_three[0].argval == 'exit':
-                    if next_three[1].opname == 'CALL_METHOD':
-                        yield next_three[1].offset
-                    if next_three[1].opname == 'LOAD_CONST' and next_three[2].opname == 'CALL_METHOD':
-                        yield next_three[2].offset
-
-    def __init__(
-        self,
-        x: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]] = None,
-    ) -> None:
-        """
-        A CPython "bytecode"-aware directed graph representing the CPython
-        bytecode instruction stack of a Python method, generator, asynchronous
-        generator, coroutine, class, string of source code, or code
-        object (as returned by compile()).
-        """
-        super(self.__class__, self).__init__()
-
-        if x is not None:
-            self._x = x
-            self._instr_map, self._bytecode = self.get_instruction_map(x)
-
-            for offset_a, offset_b in product(self._instr_map, self._instr_map): 
-                instr_a, instr_b = self._instr_map[offset_a], self._instr_map[offset_b] 
-                if offset_b - 2 == offset_a and instr_a.opname not in ['RAISE_VARARGS', 'RETURN_VALUE']: 
-                    self.add_edge(offset_a, offset_b) 
-                if instr_b.is_jump_target and instr_a.arg == offset_b: 
-                    self.add_edge(offset_a, offset_b)
-                if instr_a.opname == 'RETURN_VALUE':
-                    self.add_edge(offset_a, 0)
-
-    @property
-    def x(self):
-        return self._x
-
-    @x.setter
-    def x(self, _x):
-        self._x = _x
-
-    @property
-    def bytecode(self):
-        return self._bytecode
-    
-    @property
-    def instr_map(self):
-        return self._instr_map
-
-
-def mccabe_complexity(x: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def mccabe_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
     """
     Returns the McCabe cyclomatic complexity ``V`` of a Python method,
     generator, asynchronous generator, coroutine, class, string of source code,
     or code object (as returned by compile()), given by the formula
 
-        V(G) = e - n + 1
+        V(G) = e - n + 2
 
     where ``G`` is the strongly connected graph (with one connected component)
     of the bytecode instruction stack of the input, ``n`` is the nunber of
     nodes of ``G``, and ``e`` is  the number of edges of ``G``.
+
+    Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
+    B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
+    M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
     """
 
-    G = BytecodeGraph(x)
+    G = XBytecodeGraph(code)
 
     p = nx.number_strongly_connected_components(G)
     if p > 1:
         raise TypeError('The bytecode graph of the input is not connected')
 
-    return self.number_of_edges() - self.number_of_nodes() + 1
+    return self.number_of_edges() - self.number_of_nodes() + 2
 
 
-def henderson_sellers_complexity(x: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def mccabe_generalised_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
     """
-    Returns the Henderson-Sellers cyclomatic complexity ``V`` of a Python
+    Returns the generalised McCabe cyclomatic complexity ``V`` of a Python
     method, generator, asynchronous generator, coroutine, class, string of
     source code, or code object (as returned by compile()), given by the
     formula
 
-        V(G) = e - n + p + 1
-
-    where ``G`` is the directed graph (with one or more strongly connected
-    components) of the bytecode instruction stack of the input, ``n`` is the
-    nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, and ``p``
-    is the number of strongly connected components of ``G``.
-    """
-    G = BytecodeGraph(x)
-
-    n, e = G.number_of_nodes(), G.number_of_edges()
-    p = nx.number_strongly_connected_components(G)
-    
-    return e - n + p + 1
-
-
-def feghali_watson_complexity(x: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
-    """
-    Returns the Feghali & Watson cyclomatic complexity ``V`` of a Python
-    method, generator, asynchronous generator, coroutine, class, string of
-    source code, or code object (as returned by compile()), given by the
-    formula
+    ::
 
         V(G) = e - n + 2 * p
 
@@ -156,21 +65,27 @@ def feghali_watson_complexity(x: Union[str, Callable, Generator, Coroutine, Asyn
     components) of the bytecode instruction stack of the input, ``n`` is the
     nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, and ``p``
     is the number of strongly connected components of ``G``.
+
+    Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
+    B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
+    M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
     """
-    G = BytecodeGraph(x)
+    G = XBytecodeGraph(code)
 
     n, e = G.number_of_nodes(), G.number_of_edges()
     p = nx.number_strongly_connected_components(G)
-    
+
     return e - n + 2 * p
 
 
-def henderson_sellers_tegarden_complexity(x: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def henderson_sellers_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
     """
     Returns the Henderson-Sellers cyclomatic complexity ``V`` of a Python
     method, generator, asynchronous generator, coroutine, class, string of
     source code, or code object (as returned by compile()), given by the
     formula
+
+    ::
 
         V(G) = e - n + p + 1
 
@@ -178,10 +93,99 @@ def henderson_sellers_tegarden_complexity(x: Union[str, Callable, Generator, Cor
     components) of the bytecode instruction stack of the input, ``n`` is the
     nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, and ``p``
     is the number of strongly connected components of ``G``.
+
+    Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
+    B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
+    M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
     """
-    G = BytecodeGraph(x)
+    G = XBytecodeGraph(code)
 
     n, e = G.number_of_nodes(), G.number_of_edges()
     p = nx.number_strongly_connected_components(G)
     
+    return e - n + p + 1
+
+
+def henderson_sellers_tegarden_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+    """
+    Returns the Henderson-Sellers cyclomatic complexity ``V`` of a Python
+    method, generator, asynchronous generator, coroutine, class, string of
+    source code, or code object (as returned by compile()), given by the
+    formula
+
+    ::
+
+        V(G) = e - n + p
+
+    where ``G`` is the directed graph (with one or more strongly connected
+    components) of the bytecode instruction stack of the input, ``n`` is the
+    nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, and ``p``
+    is the number of strongly connected components of ``G``.
+
+    Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
+    B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
+    M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
+    """
+    G = XBytecodeGraph(code)
+
+    n, e = G.number_of_nodes(), G.number_of_edges()
+    p = nx.number_strongly_connected_components(G)
+
     return e - n + p
+
+
+def harrison_sellers_tegarden_generalised_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+    """
+    Returns the generalised Harrison-Sellers & Tegarden cyclomatic complexity
+    ``V`` of a Python method, generator, asynchronous generator, coroutine,
+    class, string of source code, or code object (as returned by compile()),
+    given by the formula
+
+    ::
+
+        V(G) = e - n + X + 2
+
+    where ``G`` is the directed graph (with one or more strongly connected
+    components) of the bytecode instruction stack of the input, ``d`` is the
+    number of decision points of ``G``, and ``X`` is  the total of number of
+    exit points over all (strongly) connected components of ``G``.
+
+    Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
+    B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
+    M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
+    """
+    G = XBytecodeGraph(code)
+
+    n, e = G.number_of_nodes(), G.number_of_edges()
+    X = sum(
+        nx.subgraph(G, comp)
+        for comp in nx.number_strongly_connected_components(G)
+    )
+
+    return e - n + X + 2
+
+
+def harrison_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+    """
+    Returns the Harrison cyclomatic complexity ``V`` of a Python
+    method, generator, asynchronous generator, coroutine, class, string of
+    source code, or code object (as returned by compile()), given by the
+    formula
+
+    ::
+
+        V(G) = d - x + 2
+
+    where ``G`` is the directed graph (with one or more strongly connected
+    components) of the bytecode instruction stack of the input, ``d`` is the
+    number of decision points of ``G``, and ``x`` is  the number of exit points
+    of ``G``.
+
+    Reference: 'Applying Mccabe's complexity measure to multiple‐exit programs',
+    W. A. Harrison, Journal of Software: Practice and Experience, 14:10, 10/1984.
+    """
+    G = XBytecodeGraph(code)
+
+    d, code = G.number_decision_points(), G.number_exit_points()
+
+    return d - code + 2
