@@ -381,7 +381,7 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
     last_four = []
     for (offset, op, arg), succ in pairwise(_unpack_opargs(code)):
         if linestarts is not None:
-            starts_line = linestarts.get(offset, None)
+            starts_line = linestarts.get(offset, starts_line)
             if starts_line is not None:
                 starts_line += line_offset
         is_entry_point = offset == 0
@@ -456,7 +456,6 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
 
         last_four.append((offset, op, arg))
         last_four = last_four[-4:]
-
 
 
 def disassemble(co, lasti=-1, *, file=None):
