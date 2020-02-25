@@ -4,7 +4,10 @@ __all__ = [
 
 
 from collections import OrderedDict
-from typing import Any
+from typing import (
+    Any,
+    Union,
+)
 
 import matplotlib as mp
 import matplotlib.pyplot as plt
@@ -15,16 +18,19 @@ from .graphs import XBytecodeGraph
 
 
 def draw_graph(
-    G: XBytecodeGraph,
+    G: nx.DiGraph,
     **draw_options: Any
 ) -> mp.figure.Figure:
     """
-    Draws the figure of the given bytecode graph (``code_complexity.core.complexity.BytecodeGraph``)
-    using ``matplotlib.pyplot``, and also returns the figure.
+    Draws the figure of a given ``networkx.DiGraph`` using
+    ``matplotlib.pyplot``, and also returns the figure.
     """
-    labels = OrderedDict(
-        (offset, f'({instr.offset}, {instr.starts_line}): {instr.opname} ({instr.argrepr})')
-        for offset, instr in G.xbytecode.instr_map.items()
+    labels = (
+        draw_options.get('labels') or
+        OrderedDict(
+            (offset, f'({instr.offset}, {instr.starts_line}): {instr.opname} ({instr.argrepr})')
+            for offset, instr in G.xbytecode.instr_map.items()
+        ) if isinstance(G, XBytecodeGraph) and G.xbytecode else OrderedDict((n, str(n)) for n in G.nodes)
     )
 
     draw_options = {
@@ -36,7 +42,8 @@ def draw_graph(
             'font_size': 6,
             'labels': labels,
             'edge_color': 'black',
-            'arrows': True
+            'arrows': True,
+            'connectionstyle': 'arc3, rad = 0.05'
         },
         **draw_options
     }

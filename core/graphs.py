@@ -2,6 +2,7 @@ __all__ = [
     'XBytecodeGraph'
 ]
 
+import inspect
 
 from typing import (
     Any,
@@ -36,7 +37,6 @@ from .xdis import XBytecode
 
 
 class XBytecodeGraph(DiGraph):
-
 
     @classmethod
     def get_edges(
@@ -102,6 +102,36 @@ class XBytecodeGraph(DiGraph):
 
         return H
 
+    @classmethod
+    def get_source_code_graph(
+        cls,
+        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]] = None,
+        xbytecode_graph: Optional[DiGraph] = None
+    ):
+        if not (code or xbytecode_graph):
+            raise CCMException(
+                'No code or XBytecodeGraph object available - this is required to '
+                'construct a source code graph'
+            )
+
+        G = xbytecode_graph or self.__class__(code=code)
+        instr_map = G.xbytecode.instr_map
+        src_map = OrderedDict(
+            (i, f'{l}\n')
+            for i, l in enumerate((l for l in inspect.getsource(G.code).split('\n') if l), start=1)
+        )
+
+        same_source_line = lambda i, j: instr_map[i].starts_line == instr_map[j].starts_line
+        block_b1_to_block_b2 = lambda b1, b2: any(edge in G.edges for edge in product(b1, b2))
+
+        Q = nx.quotient_graph(G, same_source_line, edge_relation=block_b1_to_block_b2)
+        block_relabelling = {b: instr_map[min(b)].starts_line for b in Q.nodes}
+        nx.relabel_nodes(Q, block_relabelling, copy=False)
+        for n, di in Q.nodes.items():
+            Q.nodes[n].update({'src_line': src_map.get(n)})
+
+        return Q
+
     def __init__(
         self,
         graph_data: Optional[Union[list, dict, nx.Graph, np.ndarray, np.matrix, sp.sparse.spmatrix, pvz.AGraph]] = None,
@@ -114,7 +144,7 @@ class XBytecodeGraph(DiGraph):
         generator, coroutine, class, string of source code, or code
         object (as returned by compile()).
         """
-        self._code = self._xbytecode = None
+        self._code = self._xbytecode = self._source_code_graph = None
         self._number_entry_points = 0
         self._number_decision_points = 0
         self._number_branch_points = 0
@@ -153,6 +183,8 @@ class XBytecodeGraph(DiGraph):
         self._number_branch_points = sum(1 for instr in it3 if instr.is_branch_point)
         self._number_exit_points = sum(1 for instr in it4 if instr.is_exit_point)
 
+        self._source_code_graph = self.__class__.get_source_code_graph(xbytecode_graph=self)
+
     @property
     def code(self):
         return self._code
@@ -160,6 +192,14 @@ class XBytecodeGraph(DiGraph):
     @property
     def xbytecode(self):
         return self._xbytecode
+
+    @property
+    def source_code_graph(self):
+        return self._source_code_graph
+
+    @source_code_graph.setter
+    def source_code_graph(self, graph):
+        self._source_code_graph = graph
 
     @property
     def number_entry_points(self):
