@@ -30,6 +30,8 @@ from typing import (
     Union,
 )
 
+import networkx as nx
+
 from .graphs import XBytecodeGraph
 
 

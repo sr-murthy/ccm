@@ -12,7 +12,7 @@ from typing import (
     Generator,
     Iterable,
     Optional,
-    TypeVar,
+    Type,
     Union,
 )
 
@@ -41,7 +41,7 @@ class XBytecodeGraph(DiGraph):
     @classmethod
     def get_edges(
         cls,
-        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]] = None,
+        code: Optional[Union[str, Callable, Generator, AsyncGenerator, Coroutine, Type]] = None,
         instr_map: Optional[OrderedDict] = None
     ) -> Generator:
         """
@@ -105,7 +105,7 @@ class XBytecodeGraph(DiGraph):
     @classmethod
     def get_source_code_graph(
         cls,
-        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]] = None,
+        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, Type]] = None,
         xbytecode_graph: Optional[DiGraph] = None
     ):
         if not (code or xbytecode_graph):
@@ -117,15 +117,15 @@ class XBytecodeGraph(DiGraph):
         G = xbytecode_graph or self.__class__(code=code)
         instr_map = G.xbytecode.instr_map
         src_map = OrderedDict(
-            (i, f'{l}\n')
+            (i, '{}\n'.format(l))
             for i, l in enumerate((l for l in inspect.getsource(G.code).split('\n') if l), start=1)
         )
 
         same_source_line = lambda i, j: instr_map[i].starts_line == instr_map[j].starts_line
-        block_b1_to_block_b2 = lambda b1, b2: any(edge in G.edges for edge in product(b1, b2))
+        block_to_block = lambda B, C: any(edge in G.edges for edge in product(B, C))
 
-        Q = nx.quotient_graph(G, same_source_line, edge_relation=block_b1_to_block_b2)
-        block_relabelling = {b: instr_map[min(b)].starts_line for b in Q.nodes}
+        Q = nx.quotient_graph(G, same_source_line, edge_relation=block_to_block)
+        block_relabelling = {B: instr_map[min(B)].starts_line for B in Q.nodes}
         nx.relabel_nodes(Q, block_relabelling, copy=False)
         for n, di in Q.nodes.items():
             Q.nodes[n].update({'src_line': src_map.get(n)})
@@ -135,7 +135,7 @@ class XBytecodeGraph(DiGraph):
     def __init__(
         self,
         graph_data: Optional[Union[list, dict, nx.Graph, np.ndarray, np.matrix, sp.sparse.spmatrix, pvz.AGraph]] = None,
-        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]] = None,
+        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, Type]] = None,
         **graph_attrs: Any
     ) -> None:
         """

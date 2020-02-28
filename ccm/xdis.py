@@ -367,7 +367,7 @@ def _get_name_info(name_index, name_list):
 
 
 def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
-                      cells=None, linestarts=None, line_offset=0):
+                      cells=None, linestarts=None, first_line=None, line_offset=0):
     """Iterate over the instructions in a bytecode string.
 
     Generates a sequence of XInstruction namedtuples giving the details of each
@@ -384,8 +384,9 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
             starts_line = linestarts.get(offset, starts_line)
             if starts_line is not None:
                 starts_line += line_offset
-        is_entry_point = offset == 0
-        is_jump_target = offset in labels
+        is_entry_point = False
+        offset == 0
+        is_jump_target = (offset in labels)
         argval = None
         argrepr = ''
         if arg is not None:
@@ -616,6 +617,7 @@ class XBytecode(object):
                 co.co_consts,
                 self._cell_names,
                 self._linestarts,
+                first_line=self.first_line,
                 line_offset=self._line_offset
             )
         )
