@@ -483,6 +483,7 @@ def _disassemble_bytes(code, lasti=-1, varnames=None, names=None,
                        constants=None, cells=None, linestarts=None,
                        *, file=None, line_offset=0):
     # Omit the line number column entirely if we have no line number info
+    #import ipdb; ipdb.set_trace()
     show_lineno = linestarts is not None
     if show_lineno:
         maxlineno = max(linestarts.values()) + line_offset
@@ -497,17 +498,19 @@ def _disassemble_bytes(code, lasti=-1, varnames=None, names=None,
         offset_width = len(str(maxoffset))
     else:
         offset_width = 4
+    last_line = None
     for instr in _get_instructions_bytes(code, varnames, names,
                                          constants, cells, linestarts,
                                          line_offset=line_offset):
         new_source_line = (show_lineno and
-                           instr.starts_line is not None and
+                           last_line != instr.starts_line and
                            instr.offset > 0)
         if new_source_line:
             print(file=file)
         is_current_instr = instr.offset == lasti
         print(instr._disassemble(lineno_width, is_current_instr, offset_width),
               file=file)
+        last_line = instr.starts_line
 
 
 def _disassemble_str(source, **kwargs):
