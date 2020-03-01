@@ -276,7 +276,7 @@ class XInstruction(_XInstruction):
          is_exit_point - True if this instruction is an exit point, otherwise False
     """
 
-    def _disassemble(self, lineno_width=3, mark_as_current=False, offset_width=4):
+    def _disassemble(self, lineno_width=3, mark_as_current=False, offset_width=4, print_start_line=True):
         """Format instruction details for inclusion in disassembly output
 
         *lineno_width* sets the width of the line number field (0 omits it)
@@ -286,7 +286,7 @@ class XInstruction(_XInstruction):
         fields = []
         # Column: Source code line number
         if lineno_width:
-            if self.starts_line is not None:
+            if self.starts_line and print_start_line:
                 lineno_fmt = "%%%dd" % lineno_width
                 fields.append(lineno_fmt % self.starts_line)
             else:
@@ -481,9 +481,8 @@ def _disassemble_recursive(co, *, file=None, depth=None):
 
 def _disassemble_bytes(code, lasti=-1, varnames=None, names=None,
                        constants=None, cells=None, linestarts=None,
-                       *, file=None, line_offset=0):
+                       *, file=None, line_offset=0, start_line_by_block=True):
     # Omit the line number column entirely if we have no line number info
-    #import ipdb; ipdb.set_trace()
     show_lineno = linestarts is not None
     if show_lineno:
         maxlineno = max(linestarts.values()) + line_offset
@@ -499,17 +498,18 @@ def _disassemble_bytes(code, lasti=-1, varnames=None, names=None,
     else:
         offset_width = 4
     last_line = None
-    for instr in _get_instructions_bytes(code, varnames, names,
+    for i, instr in enumerate(_get_instructions_bytes(code, varnames, names,
                                          constants, cells, linestarts,
-                                         line_offset=line_offset):
+                                         line_offset=line_offset)):
         new_source_line = (show_lineno and
                            last_line != instr.starts_line and
                            instr.offset > 0)
+        print_start_line = (i == 0 or new_source_line) if start_line_by_block else True
         if new_source_line:
             print(file=file)
         is_current_instr = instr.offset == lasti
-        print(instr._disassemble(lineno_width, is_current_instr, offset_width),
-              file=file)
+        print(instr._disassemble(lineno_width, is_current_instr, offset_width,
+            print_start_line=print_start_line), file=file)
         last_line = instr.starts_line
 
 
@@ -612,7 +612,7 @@ class XBytecode(object):
         self._original_object = x
         self.current_offset = current_offset
         self._instr_map = collections.OrderedDict(
-            (instr.offset, instr)
+            ((instr.starts_line, instr.offset), instr)
             for instr in _get_instructions_bytes(
                 co.co_code,
                 co.co_varnames,

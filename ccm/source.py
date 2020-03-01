@@ -84,9 +84,9 @@ def get_bytecode_instructions_by_source_line(
     return defaultdict(
         OrderedDict,
         OrderedDict(
-            (lineno, OrderedDict((offset, instr) for offset, instr in instrs))
-            for lineno, instrs in itertools.groupby(
-                bytecode.instr_map.items(), key=lambda t: t[1].starts_line
+            (lineno, OrderedDict(((lineno, it[1].offset), it[1]) for it in instr_items))
+            for lineno, instr_items in itertools.groupby(
+                bytecode.instr_map.items(), key=lambda t: t[0][0]
             )
         )
     )
@@ -109,14 +109,14 @@ def get_source_lines(
         l += '\n'
         no = i
         text = l
-        bytecode = instrs_by_line[i]
+        bytecode = instrs_by_line[no]
         ep, dp, bp, jt, xp = operator.attrgetter(
             'is_entry_point', 'is_decision_point', 'is_branch_point',
             'is_jump_target', 'is_exit_point'
         )(instrs_by_line[2][0])
 
         yield i, SourceLine(
-            lineno=i, text=l, bytecode=instrs_by_line[i],
+            lineno=i, text=l, bytecode=bytecode,
             is_entry_point=ep, is_decision_point=dp,
             is_branch_point=bp, is_jump_target=jt,
             is_exit_point=xp
