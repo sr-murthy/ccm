@@ -13,6 +13,7 @@ import sys
 import types
 import collections
 import io
+import types
 
 from opcode import *
 from opcode import __all__ as _opcodes_all
@@ -367,7 +368,8 @@ def _get_name_info(name_index, name_list):
 
 
 def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
-                      cells=None, linestarts=None, first_line=None, line_offset=0):
+                      cells=None, linestarts=None, first_line=None, line_offset=0,
+                      is_function=None):
     """Iterate over the instructions in a bytecode string.
 
     Generates a sequence of XInstruction namedtuples giving the details of each
@@ -384,7 +386,7 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
             starts_line = linestarts.get(offset, starts_line)
             if starts_line is not None:
                 starts_line += line_offset
-        is_entry_point = False
+        is_entry_point = False if not is_function else True
         offset == 0
         is_jump_target = (offset in labels)
         argval = None
@@ -621,7 +623,8 @@ class XBytecode(object):
                 self._cell_names,
                 self._linestarts,
                 first_line=self.first_line,
-                line_offset=self._line_offset
+                line_offset=self._line_offset,
+                is_function=isinstance(x, types.FunctionType)
             )
         )
 
