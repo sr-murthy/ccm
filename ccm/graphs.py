@@ -49,23 +49,50 @@ class XBytecodeGraph(DiGraph):
         ``XInstruction`` objects, either directly from code or a code-like
         object, or from a ``XInstruction`` map.
         """
+        if not (code or instr_map):
+            raise ValueError(
+                'Either a code object or '
+                'an XBytecode instruction map '
+                'must be provided'
+            )
 
-        _instr_map = XBytecode(code) if code else instr_map
+        _instr_map = XBytecode(code).instr_map if code else instr_map
 
-        instr_pairs = (
-            (a, b) for a, b, in product(_instr_map.values(), _instr_map.values())
-            if b.offset > a.offset
-        )
+        instr_iter = iter(_instr_map.values())
 
-        for instr_a, instr_b in instr_pairs:
-            if instr_b.offset - 2 == instr_a.offset and not instr_a.is_exit_point: 
-                yield (instr_a.offset, instr_b.offset) 
-            if instr_b.is_jump_target and instr_a.arg == instr_b.offset: 
-                yield (instr_a.offset, instr_b.offset)
-            if instr_a.is_exit_point:
-                yield (instr_a.offset, 0)
-            if instr_b.is_exit_point:
-                yield (instr_b.offset, 0)
+        #import ipdb; ipdb.set_trace()
+
+        instr = next(instr_iter)
+        offset = instr.offset
+        src_line_no = instr.starts_line
+
+        prev_instr = None
+        prev_offset = None
+        prev_src_line_no = None
+
+        while offset is not None:
+            if instr.is_exit_point:
+                if prev_offset is not None:
+                    yield (prev_offset, offset)
+                yield (offset, 0)
+            elif instr.is_branch_point:
+                yield (offset, instr.arg)
+            elif prev_offset is not None and not prev_instr.is_exit_point:
+                yield (prev_offset, offset)
+
+            prev_instr = instr
+            prev_offset = offset
+            prev_src_line_no = src_line_no
+
+            try:
+                instr = next(instr_iter)
+                offset = instr.offset
+                src_line_no = instr.starts_line
+            except StopIteration:
+                return
+
+            if prev_instr.is_decision_point and instr.is_branch_point:
+                yield (prev_offset, offset)
 
     def get_subgraph(
         self,
@@ -114,18 +141,45 @@ class XBytecodeGraph(DiGraph):
                 'construct a source code graph'
             )
 
-        G = xbytecode_graph or self.__class__(code=code)
+        G = xbytecode_graph or cls(code=code)
         instr_map = G.xbytecode.instr_map
         src_map = OrderedDict(
             (i, '{}\n'.format(l))
             for i, l in enumerate((l for l in inspect.getsource(G.code).split('\n') if l), start=1)
         )
 
-        same_source_line = lambda i, j: instr_map[i].starts_line == instr_map[j].starts_line
-        block_to_block = lambda B, C: any(edge in G.edges for edge in product(B, C))
+        def same_source_line(offset_1, offset_2):
+            try:
+                src_line_1 = [
+                    (src_line_no, offset) for
+                    (src_line_no, offset) in instr_map.keys()
+                    if offset == offset_1
+                ][0][0]
+            except IndexError:
+                return False
+
+            try:
+                src_line_2 = [
+                    (src_line_no, offset) for
+                    (src_line_no, offset) in instr_map.keys()
+                    if offset == offset_2
+                ][0][0]
+            except IndexError:
+                return False
+
+            return (
+                instr_map[(src_line_1, offset_1)].starts_line == 
+                instr_map[(src_line_2, offset_2)].starts_line
+            )
+
+        def block_to_block(block_A, block_B):
+            return any(edge in G.edges for edge in product(block_A, block_B))
 
         Q = nx.quotient_graph(G, same_source_line, edge_relation=block_to_block)
-        block_relabelling = {B: instr_map[min(B)].starts_line for B in Q.nodes}
+        block_relabelling = {
+            B: instr_map[min(B)].starts_line
+            for B in Q.nodes
+        }
         nx.relabel_nodes(Q, block_relabelling, copy=False)
         for n, di in Q.nodes.items():
             Q.nodes[n].update({'src_line': src_map.get(n)})
