@@ -60,8 +60,6 @@ class XBytecodeGraph(DiGraph):
 
         instr_iter = iter(_instr_map.values())
 
-        #import ipdb; ipdb.set_trace()
-
         instr = next(instr_iter)
         offset = instr.offset
         src_line_no = instr.starts_line
@@ -176,6 +174,9 @@ class XBytecodeGraph(DiGraph):
             return any(edge in G.edges for edge in product(block_A, block_B))
 
         Q = nx.quotient_graph(G, same_source_line, edge_relation=block_to_block)
+
+        # Refactor this - raises ``KeyError`` because ``instr_map`` is keyed by
+        # offset pairs, not individual offsets
         block_relabelling = {
             B: instr_map[min(B)].starts_line
             for B in Q.nodes
