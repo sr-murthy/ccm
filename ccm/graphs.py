@@ -9,9 +9,11 @@ from typing import (
     AsyncGenerator,
     Callable,
     Coroutine,
+    Dict as DictType,
     Generator,
     Iterable,
     Optional,
+    Tuple,
     Type,
     Union,
 )
@@ -33,7 +35,10 @@ from .exceptions import (
     CCMError,
     CCMException,
 )
-from .xdis import XBytecode
+from .xdis import (
+    XBytecode,
+    XInstruction,
+)
 
 
 class XBytecodeGraph(DiGraph):
@@ -42,7 +47,7 @@ class XBytecodeGraph(DiGraph):
     def get_edges(
         cls,
         code: Optional[Union[str, Callable, Generator, AsyncGenerator, Coroutine, Type]] = None,
-        instr_map: Optional[OrderedDict] = None
+        instr_map: Optional[DictType[Tuple[int, int], XInstruction]] = None
     ) -> Generator:
         """
         Generates edges corresponding to linked instructions in a map of
@@ -130,39 +135,37 @@ class XBytecodeGraph(DiGraph):
     @classmethod
     def get_source_code_graph(
         cls,
-        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, Type]] = None,
-        xbytecode_graph: Optional[DiGraph] = None
+        code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, Type]
     ):
-        if not (code or xbytecode_graph):
-            raise CCMException(
-                'No code or XBytecodeGraph object available - this is required to '
-                'construct a source code graph'
-            )
+        instr_map = XBytecode(code).instr_map
 
-        G = xbytecode_graph or cls(code=code)
-        instr_map = G.xbytecode.instr_map
+        G = DiGraph()
+        G.add_edges_from(cls.get_edges(instr_map=instr_map))
+
         src_map = OrderedDict(
             (i, '{}\n'.format(l))
-            for i, l in enumerate((l for l in inspect.getsource(G.code).split('\n') if l), start=1)
+            for i, l in enumerate((l for l in inspect.getsource(code).split('\n') if l), start=1)
         )
 
-        def same_source_line(offset_1, offset_2):
+        def get_source_line(offset):
             try:
-                src_line_1 = [
-                    (src_line_no, offset) for
-                    (src_line_no, offset) in instr_map.keys()
-                    if offset == offset_1
+                src_line_no = [
+                    (_src_line_no, _offset) for
+                    (_src_line_no, _offset) in instr_map.keys()
+                    if offset == _offset
                 ][0][0]
             except IndexError:
+                return
+            else:
+                return src_line_no
+
+        def same_source_line(offset_1, offset_2):
+            src_line_1 = get_source_line(offset_1)
+            if src_line_1 is None:
                 return False
 
-            try:
-                src_line_2 = [
-                    (src_line_no, offset) for
-                    (src_line_no, offset) in instr_map.keys()
-                    if offset == offset_2
-                ][0][0]
-            except IndexError:
+            src_line_2 = get_source_line(offset_2)
+            if src_line_2 is None:
                 return False
 
             return (
@@ -178,7 +181,7 @@ class XBytecodeGraph(DiGraph):
         # Refactor this - raises ``KeyError`` because ``instr_map`` is keyed by
         # offset pairs, not individual offsets
         block_relabelling = {
-            B: instr_map[min(B)].starts_line
+            B: instr_map[(get_source_line(min(B)), min(B))].starts_line
             for B in Q.nodes
         }
         nx.relabel_nodes(Q, block_relabelling, copy=False)
@@ -199,7 +202,9 @@ class XBytecodeGraph(DiGraph):
         generator, coroutine, class, string of source code, or code
         object (as returned by compile()).
         """
-        self._code = self._xbytecode = self._source_code_graph = None
+        self._code = None
+        self._xbytecode = None
+        self._source_code_graph = None
         self._number_entry_points = 0
         self._number_decision_points = 0
         self._number_branch_points = 0
@@ -230,15 +235,15 @@ class XBytecodeGraph(DiGraph):
         except CCMError as e:
             raise
 
-        self.add_edges_from(self.__class__.get_edges(instr_map=self._xbytecode.instr_map))
+        self.add_edges_from(self.get_edges(instr_map=self.xbytecode.instr_map))
 
-        it1, it2, it3, it4 = tee(self._xbytecode.instr_map.values(), 4)
+        it1, it2, it3, it4 = tee(self.xbytecode.instr_map.values(), 4)
         self._number_entry_points = sum(1 for instr in it1 if instr.is_entry_point)
         self._number_decision_points = sum(1 for instr in it2 if instr.is_decision_point)
         self._number_branch_points = sum(1 for instr in it3 if instr.is_branch_point)
         self._number_exit_points = sum(1 for instr in it4 if instr.is_exit_point)
 
-        self._source_code_graph = self.__class__.get_source_code_graph(xbytecode_graph=self)
+        self._source_code_graph = self.__class__.get_source_code_graph(code=self.code)
 
     @property
     def code(self):
@@ -252,38 +257,18 @@ class XBytecodeGraph(DiGraph):
     def source_code_graph(self):
         return self._source_code_graph
 
-    @source_code_graph.setter
-    def source_code_graph(self, graph):
-        self._source_code_graph = graph
-
     @property
     def number_entry_points(self):
         return self._number_entry_points
-
-    @number_entry_points.setter
-    def number_entry_points(self, n):
-        self._number_entry_points = n
 
     @property
     def number_decision_points(self):
         return self._number_decision_points
 
-    @number_decision_points.setter
-    def number_decision_points(self, n):
-        self._number_decision_points = n
-
     @property
     def number_branch_points(self):
         return self._number_branch_points
 
-    @number_branch_points.setter
-    def number_branch_points(self, n):
-        self._number_branch_points = n
-
     @property
     def number_exit_points(self):
         return self._number_exit_points
-
-    @number_exit_points.setter
-    def number_exit_points(self, n):
-        self._number_exit_points = n

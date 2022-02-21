@@ -35,7 +35,10 @@ import networkx as nx
 from .graphs import XBytecodeGraph
 
 
-def mccabe_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def mccabe_complexity(
+    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar],
+    use_source: Optional[bool] = False
+) -> int:
     """
     Returns the McCabe cyclomatic complexity of a Python method,
     generator, asynchronous generator, coroutine, class, string of source code,
@@ -43,16 +46,24 @@ def mccabe_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGene
 
         CC(G) = e - n + 2
 
-    where ``G`` is the strongly connected graph (with one connected component)
-    of the bytecode instruction stack of the input, ``n`` is the nunber of
-    nodes of ``G``, and ``e`` is  the number of edges of ``G``.
+    where ``G`` is either the ``XBytecodeGraph`` representation of the bytecode
+    instruction stack of the code object, or a ``DiGraph`` representation of
+    the source code of the code object. The other variables here are ``n`` for
+    the nunber of nodes of ``G``, and ``e`` is  the number of edges of ``G``.
+
+    Note that if the ``XBytecodeGraph`` representation is used then the graph
+    is strongly connected, with a single component. If the source code graph
+    is used then the graph is no longer strongly connected, and may have
+    multiple components indexed by the source line numbers.
 
     Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
     B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
     M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
     """
-
     G = XBytecodeGraph(code=code)
+
+    if use_source:
+        G = G.source_code_graph
 
     p = nx.number_strongly_connected_components(G)
     if p > 1:
@@ -61,7 +72,10 @@ def mccabe_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGene
     return G.number_of_edges() - G.number_of_nodes() + 2
 
 
-def mccabe_generalised_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def mccabe_generalised_complexity(
+    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar],
+    use_source: Optional[bool] = False
+) -> int:
     """
     Returns the generalised McCabe cyclomatic complexity of a Python
     method, generator, asynchronous generator, coroutine, class, string of
@@ -72,16 +86,29 @@ def mccabe_generalised_complexity(code: Union[str, Callable, Generator, Coroutin
 
         CC(G) = e - n + 2 * p
 
+    where ``G`` is either the ``XBytecodeGraph`` representation of the bytecode
+    instruction stack of the code object, or a ``DiGraph`` representation of
+    the source code of the code object. The other variables here are ``n`` for
+    the nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, and
+    ``p`` is the number of strongly connected components of ``G``.
+
+    Note that if the ``XBytecodeGraph`` representation is used then the graph
+    is strongly connected, with a single component. If the source code graph
+    is used then the graph is no longer strongly connected, and may have
+    multiple components indexed by the source line numbers.
+
     where ``G`` is the directed graph (with one or more strongly connected
     components) of the bytecode instruction stack of the input, ``n`` is the
-    nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, and ``p``
-    is the number of strongly connected components of ``G``.
+    nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, 
 
     Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
     B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
     M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
     """
     G = XBytecodeGraph(code=code)
+
+    if use_source:
+        G = G.source_code_graph
 
     n, e = G.number_of_nodes(), G.number_of_edges()
     p = nx.number_strongly_connected_components(G)
