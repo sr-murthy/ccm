@@ -36,8 +36,7 @@ from .graphs import XBytecodeGraph
 
 
 def mccabe_complexity(
-    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar],
-    use_source: Optional[bool] = False
+    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
 ) -> int:
     """
     Returns the McCabe cyclomatic complexity of a Python method,
@@ -46,15 +45,10 @@ def mccabe_complexity(
 
         CC(G) = e - n + 2
 
-    where ``G`` is either the ``XBytecodeGraph`` representation of the bytecode
+    where ``G`` is the ``XBytecodeGraph`` representation of the bytecode
     instruction stack of the code object, or a ``DiGraph`` representation of
     the source code of the code object. The other variables here are ``n`` for
     the nunber of nodes of ``G``, and ``e`` is  the number of edges of ``G``.
-
-    Note that if the ``XBytecodeGraph`` representation is used then the graph
-    is strongly connected, with a single component. If the source code graph
-    is used then the graph is no longer strongly connected, and may have
-    multiple components indexed by the source line numbers.
 
     Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
     B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
@@ -73,8 +67,7 @@ def mccabe_complexity(
 
 
 def mccabe_generalised_complexity(
-    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar],
-    use_source: Optional[bool] = False
+    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
 ) -> int:
     """
     Returns the generalised McCabe cyclomatic complexity of a Python
@@ -86,20 +79,11 @@ def mccabe_generalised_complexity(
 
         CC(G) = e - n + 2 * p
 
-    where ``G`` is either the ``XBytecodeGraph`` representation of the bytecode
+    where ``G`` is the ``XBytecodeGraph`` representation of the bytecode
     instruction stack of the code object, or a ``DiGraph`` representation of
     the source code of the code object. The other variables here are ``n`` for
     the nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, and
     ``p`` is the number of strongly connected components of ``G``.
-
-    Note that if the ``XBytecodeGraph`` representation is used then the graph
-    is strongly connected, with a single component. If the source code graph
-    is used then the graph is no longer strongly connected, and may have
-    multiple components indexed by the source line numbers.
-
-    where ``G`` is the directed graph (with one or more strongly connected
-    components) of the bytecode instruction stack of the input, ``n`` is the
-    nunber of nodes of ``G``, ``e`` is  the number of edges of ``G``, 
 
     Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
     B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
@@ -116,7 +100,9 @@ def mccabe_generalised_complexity(
     return e - n + 2 * p
 
 
-def henderson_sellers_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def henderson_sellers_complexity(
+    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+) -> int:
     """
     Returns the Henderson-Sellers cyclomatic complexity of a Python
     method, generator, asynchronous generator, coroutine, class, string of
@@ -144,7 +130,9 @@ def henderson_sellers_complexity(code: Union[str, Callable, Generator, Coroutine
     return e - n + p + 1
 
 
-def henderson_sellers_tegarden_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def henderson_sellers_tegarden_complexity(
+    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+) -> int:
     """
     Returns the Henderson-Sellers cyclomatic complexity of a Python
     method, generator, asynchronous generator, coroutine, class, string of
@@ -172,7 +160,9 @@ def henderson_sellers_tegarden_complexity(code: Union[str, Callable, Generator, 
     return e - n + p
 
 
-def henderson_sellers_tegarden_generalised_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def henderson_sellers_tegarden_generalised_complexity(
+    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+) -> int:
     """
     Returns the generalised Henderson-Sellers & Tegarden cyclomatic complexity
     of a Python method, generator, asynchronous generator, coroutine,
@@ -203,7 +193,9 @@ def henderson_sellers_tegarden_generalised_complexity(code: Union[str, Callable,
     return e - n + X + 2
 
 
-def harrison_complexity(code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]) -> int:
+def harrison_complexity(
+    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+) -> int:
     """
     Returns the Harrison cyclomatic complexity of a Python
     method, generator, asynchronous generator, coroutine, class, string of
