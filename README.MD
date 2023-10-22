@@ -3,7 +3,7 @@ README
 
 Cyclomatic complexity measures for CPython bytecode and Python source code.
 
-Based on representing the incoming code object or representation as a graph, the following cyclomatic complexity measures can be computed:
+Based on representing the incoming code object or representation as a directed graph, the following cyclomatic complexity measures can be computed:
 
 1. McCabe complexity (CC(G) = `#{edges} - #{nodes} + 1)`
 2. Generalised McCabe complexity (CC(G) = `#{edges} - #{nodes} + 2 * #{connected components})`
