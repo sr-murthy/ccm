@@ -48,20 +48,13 @@ def mccabe_complexity(
     where ``G`` is the ``XBytecodeGraph`` representation of the bytecode
     instruction stack of the code object, or a ``DiGraph`` representation of
     the source code of the code object. The other variables here are ``n`` for
-    the nunber of nodes of ``G``, and ``e`` is  the number of edges of ``G``.
+    the number of nodes of ``G``, and ``e`` is  the number of edges of ``G``.
 
     Reference: 'A Critical Re-examination of Cyclomatic Complexity Measures',
     B. Henderson-Sellers & D. Tegarden, Software Quality and Productivity,
     M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
     """
     G = XBytecodeGraph(code=code)
-
-    if use_source:
-        G = G.source_code_graph
-
-    p = nx.number_strongly_connected_components(G)
-    if p > 1:
-        raise TypeError('The bytecode graph of the input is not connected')
 
     return G.number_of_edges() - G.number_of_nodes() + 2
 
@@ -90,9 +83,6 @@ def mccabe_generalised_complexity(
     M. Lee et. al. (eds.), Springer, Dordrecht, 1995, pp.328-335.
     """
     G = XBytecodeGraph(code=code)
-
-    if use_source:
-        G = G.source_code_graph
 
     n, e = G.number_of_nodes(), G.number_of_edges()
     p = nx.number_strongly_connected_components(G)
