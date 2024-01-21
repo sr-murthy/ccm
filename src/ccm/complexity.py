@@ -22,12 +22,7 @@ __all__ = [
 
 from types import CodeType
 from typing import (
-    AsyncGenerator,
     Callable,
-    Coroutine,
-    Generator,
-    Optional,
-    TypeVar,
     Union,
 )
 
