@@ -20,6 +20,7 @@ __all__ = [
     'mccabe_generalised_complexity',
 ]
 
+from types import CodeType
 from typing import (
     AsyncGenerator,
     Callable,
@@ -36,7 +37,7 @@ from .graphs import XBytecodeGraph
 
 
 def mccabe_complexity(
-    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+    code: Union[str, CodeType, Callable]
 ) -> int:
     """
     Returns the McCabe cyclomatic complexity of a Python method,
@@ -60,7 +61,7 @@ def mccabe_complexity(
 
 
 def mccabe_generalised_complexity(
-    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+    code: Union[str, CodeType, Callable]
 ) -> int:
     """
     Returns the generalised McCabe cyclomatic complexity of a Python
@@ -91,7 +92,7 @@ def mccabe_generalised_complexity(
 
 
 def henderson_sellers_complexity(
-    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+    code: Union[str, CodeType, Callable]
 ) -> int:
     """
     Returns the Henderson-Sellers cyclomatic complexity of a Python
@@ -121,7 +122,7 @@ def henderson_sellers_complexity(
 
 
 def henderson_sellers_tegarden_complexity(
-    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+    code: Union[str, CodeType, Callable]
 ) -> int:
     """
     Returns the Henderson-Sellers cyclomatic complexity of a Python
@@ -151,7 +152,7 @@ def henderson_sellers_tegarden_complexity(
 
 
 def henderson_sellers_tegarden_generalised_complexity(
-    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+    code: Union[str, CodeType, Callable]
 ) -> int:
     """
     Returns the generalised Henderson-Sellers & Tegarden cyclomatic complexity
@@ -184,7 +185,7 @@ def henderson_sellers_tegarden_generalised_complexity(
 
 
 def harrison_complexity(
-    code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, TypeVar]
+    code: Union[str, CodeType, Callable]
 ) -> int:
     """
     Returns the Harrison cyclomatic complexity of a Python
