@@ -235,10 +235,20 @@ def show_code(co, *, file=None):
 
 _XInstruction = collections.namedtuple(
     "_XInstruction",
-     (
-        "opname opcode arg argval argrepr offset starts_line is_entry_point is_jump_target "
-        "is_decision_point is_branch_point is_exit_point"
-    )
+    """
+    opname
+    opcode
+    arg
+    argval
+    argrepr
+    offset
+    starts_line
+    is_entry_point
+    is_jump_target
+    is_decision_point
+    is_branch_point
+    is_exit_point
+    """
 )
 
 
@@ -276,6 +286,10 @@ class XInstruction(_XInstruction):
          is_branch_point - True if this instruction is a branching point, otherwise False
          is_exit_point - True if this instruction is an exit point, otherwise False
     """
+
+    @property
+    def dis_line(self) -> str:
+        return self._disassemble()
 
     def _disassemble(self, lineno_width=3, mark_as_current=False, offset_width=4, print_start_line=True):
         """Format instruction details for inclusion in disassembly output
@@ -386,8 +400,7 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
             starts_line = linestarts.get(offset, starts_line)
             if starts_line is not None:
                 starts_line += line_offset
-        is_entry_point = False if not is_function else True
-        offset == 0
+        is_entry_point = (offset == 0)
         is_jump_target = (offset in labels)
         argval = None
         argrepr = ''
