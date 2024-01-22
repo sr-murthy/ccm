@@ -4,11 +4,11 @@ __all__ = [
 
 import inspect
 
+from types import CodeType
+
 from typing import (
     Any,
-    AsyncGenerator,
     Callable,
-    Coroutine,
     Dict as DictType,
     Generator,
     Iterable,
@@ -46,7 +46,7 @@ class XBytecodeGraph(DiGraph):
     @classmethod
     def get_edges(
         cls,
-        code: Optional[Union[str, Callable, Generator, AsyncGenerator, Coroutine, Type]] = None,
+        code: Optional[Union[str, CodeType, Callable]] = None,
         instr_map: Optional[DictType[Tuple[int, int], XInstruction]] = None
     ) -> Generator:
         """
@@ -135,7 +135,7 @@ class XBytecodeGraph(DiGraph):
     @classmethod
     def get_source_code_graph(
         cls,
-        code: Union[str, Callable, Generator, Coroutine, AsyncGenerator, Type]
+        code: Union[str, CodeType, Callable]
     ):
         instr_map = XBytecode(code).instr_map
 
@@ -193,7 +193,7 @@ class XBytecodeGraph(DiGraph):
     def __init__(
         self,
         graph_data: Optional[Union[list, dict, nx.Graph, np.ndarray, np.matrix, sp.sparse.spmatrix, pvz.AGraph]] = None,
-        code: Optional[Union[str, Callable, Generator, Coroutine, AsyncGenerator, Type]] = None,
+        code: Optional[Union[str, CodeType, Callable]] = None,
         **graph_attrs: Any
     ) -> None:
         """
