@@ -55,10 +55,10 @@ FORMAT_VALUE_CONVERTERS = (
 MAKE_FUNCTION = opmap['MAKE_FUNCTION']
 MAKE_FUNCTION_FLAGS = ('defaults', 'kwdefaults', 'annotations', 'closure')
 
-CALL_OPS = {op: _opname for op, _opname in zip(range(len(opname)), opname) if _opname.startswith('CALL')}
-DECISION_OPS = {op: _opname for op, _opname in zip(range(len(opname)), opname) if 'COMPARE' in _opname}
-BRANCH_OPS = {op: _opname for op, _opname in zip(range(len(opname)), opname) if 'JUMP' in _opname}
-EXIT_OPS = {op: _opname for op, _opname in zip(range(len(opname)), opname) if _opname in ['RETURN_VALUE', 'RAISE_VARARGS']}
+CALL_OPS = {i: _opname for i, _opname in zip(range(len(opname)), opname) if _opname.startswith('CALL')}
+DECISION_OPS = {i: _opname for i, _opname in zip(range(len(opname)), opname) if opmap.get(_opname, None) in hascompare}
+BRANCH_OPS = {i: _opname for i, _opname in zip(range(len(opname)), opname) if opmap.get(_opname, None) in hasjabs + hasjrel}
+EXIT_OPS = {i: _opname for i, _opname in zip(range(len(opname)), opname) if _opname in ['RETURN_VALUE', 'RAISE_VARARGS']}
 
 
 def _try_compile(source, name):

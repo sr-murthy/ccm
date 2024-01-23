@@ -9,23 +9,25 @@ Method
 The calculation of the measures is made possible using the following method:
 
 * From the given source code object - which could be a source fragment (string), or a `code object <https://docs.python.org/3.7/c-api/code.html>`_, or a function or callable - the (CPython) bytecode object is obtained using a `modifed version <https://github.com/sr-murthy/ccm/blob/master/src/ccm/xdis.py>`_ of the `dis library <https://docs.python.org/3.7/library/dis.html>`_ (an old version from Python 3.7), and the bytecode object is then disassembled into an instruction map of individual CPython bytecode instructions.
-* Each instruction is classified as follows: an **entry point** if the instruction is the very first bytecode step of the callable, a **branch point** if the instruction is a branching instruction to another instruction (e.g. :code:`JUMP`), a **decision point** if the instruction involves a comparison (e.g. :code:`COMPARE_OP`), or an **exit point** if the instruction stops or interrupts execution of the callable and returns control flow back to the caller (e.g. :code:`RETURN_VALUE`, :code:`RAISE_VARARGS`).
+* Each instruction is classified as follows: an **entry point** if the instruction is the very first bytecode step of the callable, a **decision point** if the instruction involves a comparison (e.g. :code:`COMPARE_OP`), a **branch point** if the instruction is a branching instruction to another instruction (e.g. :code:`JUMP`), or an **exit point** if the instruction stops or interrupts execution of the callable and returns control flow back to the caller (e.g. :code:`RETURN_VALUE`, :code:`RAISE_VARARGS`).
 * Using the `networkx library <https://networkx.org/>`_ the bytecode instruction map is represented as a **strongly connected directed graph**, called the **bytecode graph**, with nodes representing individual bytecode instructions, edges representing (explicit or implicit) transitions between instructions.
+
+**Note**: often instructions may not be entry points, decision points, branch points or exit points, but simply transitional instructions that follow and are succeeded by other instructions in order of execution.
 
 The bytecode graph will have all of the structural information about the number of nodes, edges, connected components and the like, in order to calculate the CCMs.
 
 There are several CCMs that can be calculated with this approach:
 
-1. McCabe complexity (CC(G): :code:`#{edges} - #{nodes} + 2)`
-2. Generalised McCabe complexity (CC(G): :code:`#{edges} - #{nodes} + 2 * #{connected components})`
-3. Henderson-Sellers complexity (CC(G): :code:`#{edges} - #{nodes} + #{connected components} + 1)`
-4. Henderson-Sellers & Tegarden complexity (CC(G): :code:`#{edges} - #{nodes} + #{connected components})`
-5. Generalised Henderson-Sellers & Tegarden complexity (CC(G): :code:`#{edges} - #{nodes} + #{exit points per connected component} + 2)`
-6. Harrison complexity (CC(G): :code:`#{decision points} - #{exit points} + 2)`
+1. McCabe complexity: :code:`#{edges} - #{nodes} + 2)`
+2. Generalised McCabe complexity: :code:`#{edges} - #{nodes} + 2 * #{connected components})`
+3. Henderson-Sellers complexity: :code:`#{edges} - #{nodes} + #{connected components} + 1)`
+4. Henderson-Sellers & Tegarden complexity: :code:`#{edges} - #{nodes} + #{connected components})`
+5. Generalised Henderson-Sellers & Tegarden complexity: :code:`#{edges} - #{nodes} + #{exit points per connected component} + 2)`
+6. Harrison complexity: :code:`#{decision points} - #{exit points} + 2)`
 
 A related measure, useful for software testing, is the number of linearly independent paths (so-called `basis paths <https://en.wikipedia.org/wiki/Basis_path_testing>`_) in the `directed acyclic graph <https://en.wikipedia.org/wiki/Directed_acyclic_graph>`_ (DAG) representation of a given source code object. This will be described in more detail later.
 
-**Note**: As noted `here <https://doi.org/10.1007/978-0-387-34848-3_51>`_ the standard McCabe complexity measure (1) only applies to individual functions or methods, which can be represented as a single connected component. A class with more than one method, or a module with multiple functions and/or classes, can only be represented a disjoint union of connected components, and in these cases the generalised McCabe complexity (2), the Henderson-Sellers complexity (3), or related generalised measures, should be used instead.
+**Note**: As noted `here <https://doi.org/10.1007/978-0-387-34848-3_51>`_ the standard McCabe complexity measure (1) only applies to individual functions or methods, which can be represented as a connected digraph with a single component. A class with more than one method, or a module with multiple functions and/or classes, is usually representable as a connected graph which is a disjoint union of components, and in these cases the generalised McCabe complexity (2), the Henderson-Sellers complexity (3), or related generalised measures, should be used instead.
 
 Example
 -------
@@ -64,12 +66,12 @@ Using :code:`dis.dis` this function can be disassembled into the following (CPyt
    6     >>   24 LOAD_CONST               3 (1)
               26 RETURN_VALUE
 
-For more information on the details of the bytecode instructions, as displayed to the console, refer to the `dis documentation (3.7) <https://docs.python.org/3.7/library/dis.html>`_, but in essence, each line prints out the following values in order from left to right:
+For more information on the details of the bytecode instructions, as displayed to the console, refer to the `dis documentation (3.7) <https://docs.python.org/3.7/library/dis.html>`_, but a brief summary is given below of the values contained in the lines in the bytecode printout:
 
 * the first value is an integer representing the (unique) number of the source code line associated with the bytecode instruction (block)
 * the second value is an integer, called the `instruction offset <https://docs.python.org/3.7/library/dis.html#dis.Instruction.offset>`_, representing the (unique) index of the bytecode instruction relative to the starting point of the complete sequence of bytecode instructions, which are in ascending order of offset
 * the third value, called the `opname <https://docs.python.org/3.7/library/dis.html#dis.Instruction.opname>`_ is the human readable name of the associated bytecode operation
-* the (possibly null) fourth value is the `argument <https://docs.python.org/3.7/library/dis.html#dis.Instruction.arg>`_ to the bytecode operation (if any)
+* the (possibly null) fourth value is an `argument <https://docs.python.org/3.7/library/dis.html#dis.Instruction.arg>`_ (or paramter) to the bytecode operation (if any)
 * the (possibly null) fifth value, in parentheses if not null, is a human readable `description <https://docs.python.org/3.7/library/dis.html#dis.Instruction.argrepr>`_ of the operational argument.
 
 **Note**: instructions which are jump targets have offsets prefixed by :code:`>>` (refer `here <https://github.com/python/cpython/blob/3.7/Lib/dis.py#L234>`_).
@@ -80,11 +82,11 @@ The bytecode can be represented as the following DAG:
    :align: left
    :alt: Python sign function as a directed acyclic graph (DAG)
 
-The unique entry point, and the branch points, decision points and exit points are clear from this representation, but are also stored at the level of bytecode instruction as attributes.
+The unique entry point, and the decision points, branch points and exit points are clear from this representation, but are also stored at the level of bytecode instruction as attributes.
 
-The key point here is that in order to compute the cyclomatic complexity measures for a directed graph it must be connected, i.e. there must be a path between any two nodes, in any direction. Thus, it is necessary to add edges to this representation from all the exit points back to the entry point. Once this is done, computing the measures is relatively easy using `networkx <networkx.org>`_.
+To compute the cyclomatic complexity measures, as defined above, for a given Python source code object the bytecode graph must be connected, i.e. there must be a path between any two nodes, in any direction. This is done in the bytecode graph via derived edges that link all exit points back to the entry point.
 
-Here's an iPython session showing how the function can used to calculate the various CCMs.
+Here's an iPython session using an example function with some branching complexity.
 
 .. code-block:: python
 
@@ -168,18 +170,19 @@ The console printed versions of the instructions are more human readable, and so
      2           0 LOAD_FAST                0 (x)
 
    In [16]: for instr in G.xbytecode.instr_map.values():
-        ...:    if instr.is_branch_point:
-        ...:        print(instr.dis_line)
-
-     2           6 POP_JUMP_IF_FALSE       12
-     4          18 POP_JUMP_IF_FALSE       24
-
-   In [17]: for instr in G.xbytecode.instr_map.values():
         ...:     if instr.is_decision_point:
         ...:         print(instr.dis_line)
         ...: 
      2           4 COMPARE_OP               0 (<)
      4          16 COMPARE_OP               2 (==)
+
+
+   In [17]: for instr in G.xbytecode.instr_map.values():
+        ...:    if instr.is_branch_point:
+        ...:        print(instr.dis_line)
+
+     2           6 POP_JUMP_IF_FALSE       12
+     4          18 POP_JUMP_IF_FALSE       24
 
    In [18]: for instr in G.xbytecode.instr_map.values():
         ...:     if instr.is_exit_point:
@@ -202,7 +205,7 @@ The bytecode graph also stores as an attribute (:code:`source_code_graph`) a (st
    In [20]: G.source_code_graph.edges
    Out[20]: OutEdgeView([(4, 6), (4, 5), (6, 2), (2, 4), (2, 3), (3, 2), (5, 2)])
 
-Usually, the source code digraph should be isomorphic to the bytecode graph - the isomorphism is established by an equivalence relation on the bytecode instructions based on equality of the associated source code lines. This means that, usually, the cyclomatic complexity measures computed on a source code graph should be identical to those computed on the associated bytecode graph, e.g. for the :code:`sign` function we have:
+In most cases, the source code digraph is isomorphic to the bytecode graph - the isomorphism is established by an equivalence relation on the bytecode instructions based on equality of the associated source code lines. This means that, usually, the cyclomatic complexity measures computed on a source code graph should be identical to those computed on the associated bytecode graph, e.g. for the :code:`sign` function we have:
 
 .. code-block:: python
 
@@ -214,7 +217,7 @@ Usually, the source code digraph should be isomorphic to the bytecode graph - th
    In [23]: G.source_code_graph.number_of_edges() - G.source_code_graph.number_of_nodes() + 2
    Out[23]: 4
 
-However, for one-line functions (or callables) this is unfortunately not true, because the source code graphs for such callables contain a single node, namely the sole source line, hence making the graph disconnected. This should not be a problem as the complexity functions use the bytecode graph of the incoming source code object.
+However, for one-line functions (or callables) this is unfortunately not true, because the source code graphs for such callables contain a single node, namely the sole source line, while the bytecode graph will contain two or more instructions for the single source line (depending on the disassembly). This should not be a problem as the complexity functions use the bytecode graph of the incoming source code object.
 
 Limitations
 -----------
