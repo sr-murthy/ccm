@@ -6,7 +6,7 @@ This is an **experimental project** for calculating `cyclomatic complexity <http
 Method
 ------
 
-The calculation of the measures is made possible using the following method:
+Computing the measures is made possible using the following method:
 
 * From the given source code object - which could be a source fragment (string), or a `code object <https://docs.python.org/3.7/c-api/code.html>`_, or a function or callable - the (CPython) bytecode object is obtained using a `modifed version <https://github.com/sr-murthy/ccm/blob/master/src/ccm/xdis.py>`_ of the `dis library <https://docs.python.org/3.7/library/dis.html>`_ (an old version from Python 3.7), and the bytecode object is then disassembled into an instruction map of individual CPython bytecode instructions.
 * Each instruction is classified as follows: an **entry point** if the instruction is the very first bytecode step of the callable, a **decision point** if the instruction involves a comparison (e.g. :code:`COMPARE_OP`), a **branch point** if the instruction is a branching instruction to another instruction (e.g. :code:`JUMP`), or an **exit point** if the instruction stops or interrupts execution of the callable and returns control flow back to the caller (e.g. :code:`RETURN_VALUE`, :code:`RAISE_VARARGS`).
@@ -14,7 +14,7 @@ The calculation of the measures is made possible using the following method:
 
 **Note**: often instructions may not be entry points, decision points, branch points or exit points, but simply transitional instructions that follow and are succeeded by other instructions in order of execution.
 
-The bytecode graph will have all of the structural information about the number of nodes, edges, connected components and the like, in order to calculate the CCMs. Additionally, if we consider only source code representing individual functions or class methods, we can define an equivalence relation on the bytecode instructions in terms of the identity of their associated source lines. With a minor modification, this relation will yield a (strongly) connected digraph of the source lines - a source code graph - which is isomorphic to the quotient of the bytecode graph under this equivalence relation, and will yield the same complexity measures for a given source code object as the bytecode graph. This will be described in more detail with examples later on.
+The bytecode graph will have all of the structural information about the number of nodes, edges, connected components and the like, in order to compute the CCMs. It can also be used to create a (connected) digraph of the source lines (as the quotient graph of the bytecode graph under a simple equivalence relation on the instructions), as described later - this source code graph will be similar to the bytecode graph, but not necessarily the same and may produce slightly different values for the CCMs compared to the bytecode graph.
 
 There are several CCMs that can be calculated with this approach:
 
@@ -70,7 +70,7 @@ Using :code:`dis.dis` this function can be disassembled into the following (CPyt
 
 For more information on the details of the bytecode instructions, as displayed to the console, refer to the `dis documentation (Python 3.7) <https://docs.python.org/3.7/library/dis.html>`_, but a brief summary is given below of the values contained in the lines in the bytecode printout:
 
-* The first value is an integer representing the (unique) number of the source code line associated with the bytecode instruction (block).
+* The first value is an integer representing the (unique) number of the source line associated with the bytecode instruction (block).
 * The second value is an integer, called the `instruction offset <https://docs.python.org/3.7/library/dis.html#dis.Instruction.offset>`_, representing the (unique) index of the bytecode instruction relative to the starting point of the complete sequence of bytecode instructions, which are in ascending order of offset.
 * The third value, called the `opname <https://docs.python.org/3.7/library/dis.html#dis.Instruction.opname>`_ is the human readable name of the associated bytecode operation.
 * The (possibly null) fourth value is an `argument <https://docs.python.org/3.7/library/dis.html#dis.Instruction.arg>`_ (or parameter) to the bytecode operation (if any).
@@ -209,19 +209,21 @@ The bytecode graph stores the associated source code graph in the :code:`source_
    In [21]: G.source_code_graph.edges
    Out[21]: OutEdgeView([(4, 6), (4, 5), (6, 2), (2, 4), (2, 3), (3, 2), (5, 2)])
 
-**Note**: as with the bytecode graph, the source code graph has edges between any source line representing an exit point (if the associated bytecode instruction block contains an exit point) and the (unique) entry point. This is what makes the source code graph (strongy) connected. This includes the special case of a source code object with just a single source line.
+**Note**: as with the bytecode graph, the source code graph has edges between any source line representing an exit point (if the associated bytecode instruction block contains an exit point) and the (unique) entry point, including the special case where we have just a single source line, with a looped edge on itself. This is what makes the source code graph (strongy) connected. This includes the special case of a source code object with just a single source line.
 
-The relationship between the bytecode graph and the source code graph for functions and class methods has a number of properties which are interesting to consider from the point of view of cyclomatic complexity:
+The bytecode graph and the source code graph for functions and class methods will be similar, but not necessarily the same. There are several points to note.
 
-* As the source code graph is the quotient of the bytecode graph under the equivalence relation described above, its nodes correspond to blocks of bytecode instructions associated with a unique source line. And adding an additional edge between any two instructions in a given instruction block does not change the quantity :code:`#{edges} - #{nodes}` for the bytecode graph. This means that edges between nodes in a given instruction block can be ignored, while only edges between instructions in different blocks count for :code:`#{edges} - #{nodes}`.
+* As the source code graph is the quotient of the bytecode graph under the equivalence relation described above, its nodes correspond to blocks of bytecode instructions associated with a unique source line, and edges correspond to edges between instructions in different instruction blocks associated with different source lines.
 
-* There is only entry point in a bytecode graph, because it is defined as the first bytecode instruction (one with the unique offset :code:`0`). Thus there is only one source line in the source code graph associated with this entry point, namely, the first source line in the body of the source code object.
+* If :code:`n` is the number of instruction blocks (same as the number of source lines), and for a given block :code:`B` we have :code:`D(B)` decision points and :code:`X(B)` exit points, then the source code graph will have :code:`n` nodes and at least :code:`Sum(D(B) + X(B))` where this is a sum over all instructionsblocks :code:`B`.
 
-* Decision points, branch points and exit points in the bytecode graph are also associated 1-to-1 with unique source lines in the source code graph, and thus their numbers do not change in the source code graph.
+* There is only one entry point in a bytecode graph, because it is defined as the first bytecode instruction (one with the unique offset :code:`0`). Thus there is only one source line in the source code graph associated with this entry point, namely, the first source line in the body of the source code object.
+
+* Decision points, branch points and exit points in the bytecode graph are also associated with unique source lines in the source code graph.
 
 * The bytecode graph is (strongly) connected with only one component, namely, itself, which means the source code graph is also (strongly) connected with only one component.
 
-This means that the cyclomatic complexity measures, as defined above, will be the same for functions or class methods regardless of whether we use the source code graph or the bytecode graph. Here are two examples for McCabe complexity, using simple functions. First, the :code:`sign` function, which has five source lines (excluding the signature):
+This means that for source code graphs the CCMs, as defined above, will be a lower bound for the CCMs calculated using the bytecode graph. Here are three examples for McCabe complexity, using simple functions. First, the :code:`sign` function, which has five source lines (excluding the signature):
 
 .. code-block:: python
 
@@ -245,7 +247,7 @@ This means that the cyclomatic complexity measures, as defined above, will be th
    In [28]: G.source_code_graph.number_of_edges() - G.source_code_graph.number_of_nodes() + 2
    Out[28]: 4
 
-And the second, which is the identity function, with just a single source line:
+The second example is an identity function for arbitrary arguments, with just a single source line:
 
 .. code-block:: python
 
@@ -255,8 +257,8 @@ And the second, which is the identity function, with just a single source line:
         ...:    return x
 
    In [30]: xdis(identity)
-     2           0 LOAD_FAST                0 (x)
-                 2 RETURN_VALUE
+    2           0 LOAD_FAST                0 (x)
+                2 RETURN_VALUE
 
    In [31]: H = XBytecodeGraph(code=identity)
 
@@ -277,6 +279,41 @@ And the second, which is the identity function, with just a single source line:
 
    In [37]: H.source_code_graph.number_of_edges() - H.source_code_graph.number_of_nodes() + 2
    Out[37]: 2
+
+In both these examples, the CCMs computed using the bytecode graph and source code graph were identical - this is because the decision points in both represent simple conditions involving a comparison of two values, and do not consist of a compound condition composed of two or more comparisons. With a decision point involving a simple condition, both branches of the associated branching instruction will be instructions in other blocks. This is not the case where a decision point involves a compound condition.
+
+Here is a third example involving a function with a decision point involving a compound condition, where the CCMs from the bytecode graph and source code graph differ.
+
+.. code-block:: python
+
+   In [38]: def nonzero(x):
+       ...:     if x < 0 or x > 0 :
+       ...:         return True
+       ...:     return False
+
+   In [38]: xdis(nonzero)
+    2           0 LOAD_FAST                0 (x)
+                2 LOAD_CONST               1 (0)
+                4 COMPARE_OP               0 (<)
+                6 POP_JUMP_IF_TRUE        16
+                8 LOAD_FAST                0 (x)
+               10 LOAD_CONST               1 (0)
+               12 COMPARE_OP               4 (>)
+               14 POP_JUMP_IF_FALSE       20
+
+    3     >>   16 LOAD_CONST               2 (True)
+               18 RETURN_VALUE
+
+    4     >>   20 LOAD_CONST               3 (False)
+               22 RETURN_VALUE
+
+   In [39]: Z = XBytecodeGraph(code=nonzero)
+
+   In [40]: Z.number_of_edges() - Z.number_of_nodes() + 2
+   Out[40]: 4
+
+   In [41]: Z.source_code_graph.number_of_edges() - Z.source_code_graph.number_of_nodes() + 2
+   Out[41]: 3
 
 Limitations
 -----------
