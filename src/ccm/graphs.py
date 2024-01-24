@@ -137,6 +137,7 @@ class XBytecodeGraph(DiGraph):
         cls,
         code: Union[str, CodeType, Callable]
     ):
+        #import ipdb; ipdb.set_trace()
         instr_map = XBytecode(code).instr_map
 
         G = DiGraph()
@@ -178,8 +179,6 @@ class XBytecodeGraph(DiGraph):
 
         Q = nx.quotient_graph(G, same_source_line, edge_relation=block_to_block)
 
-        # Refactor this - raises ``KeyError`` because ``instr_map`` is keyed by
-        # offset pairs, not individual offsets
         block_relabelling = {
             B: instr_map[(get_source_line(min(B)), min(B))].starts_line
             for B in Q.nodes
@@ -187,6 +186,10 @@ class XBytecodeGraph(DiGraph):
         nx.relabel_nodes(Q, block_relabelling, copy=False)
         for n, di in Q.nodes.items():
             Q.nodes[n].update({'src_line': src_map.get(n)})
+
+        if len(Q.nodes) == 1:
+            singleton_node = next(iter(Q.nodes))
+            Q.add_edge(singleton_node, singleton_node)
 
         return Q
 

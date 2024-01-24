@@ -670,10 +670,6 @@ class XBytecode(object):
     def instr_map(self):
         return self._instr_map
 
-    @instr_map.setter
-    def instr_map(self, _map):
-        self._instr_map = _map
-
     @classmethod
     def from_traceback(cls, tb):
         """ Construct an XBytecode from the given traceback """
