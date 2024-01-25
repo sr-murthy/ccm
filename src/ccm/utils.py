@@ -1,28 +1,16 @@
 __all__ = [
     'create_property',
-    'get_json',
     'pairwise',
-    'STATIC_DATA_FP'
 ]
-
-import io
-import json
-import os
 
 from itertools import (
     tee,
     zip_longest,
 )
-from json import JSONDecodeError
 from typing import (
     Iterable,
     Iterator,
 )
-
-from .exceptions import CCMError
-
-
-STATIC_DATA_FP = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static')
 
 
 def create_property(name: str, attr_prefix: str = '', writable: bool = False) -> property:
@@ -54,23 +42,6 @@ def create_property(name: str, attr_prefix: str = '', writable: bool = False) ->
         obj.__dict__.update({'{}{}'.format(attr_prefix, name): value})
 
     return property(getter, setter)
-
-
-def get_json(src_fp: str) -> dict:
-    """
-    Loads JSON from file.
-
-    :param src_fp: Source JSON file path
-    :type src_fp: str
-
-    :return: Dictionary
-    :rtype: dict
-    """
-    try:
-        with io.open(src_fp, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (IOError, JSONDecodeError, OSError, TypeError) as e:
-        raise
 
 
 def pairwise(it: Iterable) -> Iterator:

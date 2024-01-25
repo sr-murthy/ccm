@@ -1,5 +1,5 @@
 __all__ = [
-    'XBytecodeGraph'
+    'XBytecodeGraph',
 ]
 
 import inspect
@@ -48,7 +48,7 @@ class XBytecodeGraph(DiGraph):
         cls,
         code: Optional[Union[str, CodeType, Callable]] = None,
         instr_map: Optional[DictType[Tuple[int, int], XInstruction]] = None
-    ) -> Generator:
+    ) -> Generator[Tuple[int, int], None, None]:
         """
         Generates edges corresponding to linked instructions in a map of
         ``XInstruction`` objects, either directly from code or a code-like
@@ -101,7 +101,7 @@ class XBytecodeGraph(DiGraph):
         self,
         nodes: Optional[Iterable] = None,
         edges: Optional[Iterable] = None
-    ) -> DiGraph:
+    ) -> nx.DiGraph:
         """
         Gets a subgraph of ``self`` containing only those nodes or edges
         provided by the corresponding optional arguments, and with an
@@ -115,8 +115,8 @@ class XBytecodeGraph(DiGraph):
 
         _nodes = nodes or [n for e in edges for n in e]
 
-        to_remove = set(H.nodes).difference(_nodes)
-        H.remove_nodes_from(to_remove)
+        nodes_to_remove = set(H.nodes).difference(_nodes)
+        H.remove_nodes_from(nodes_to_remove)
 
         H.xbytecode.instr_map = {
             offset: instr
@@ -136,7 +136,7 @@ class XBytecodeGraph(DiGraph):
     def get_source_code_graph(
         cls,
         code: Union[str, CodeType, Callable]
-    ):
+    ) -> nx.DiGraph:
         #import ipdb; ipdb.set_trace()
         instr_map = XBytecode(code).instr_map
 
@@ -162,10 +162,12 @@ class XBytecodeGraph(DiGraph):
 
         def same_source_line(offset_1, offset_2):
             src_line_1 = get_source_line(offset_1)
+            
             if src_line_1 is None:
                 return False
 
             src_line_2 = get_source_line(offset_2)
+
             if src_line_2 is None:
                 return False
 
@@ -184,6 +186,7 @@ class XBytecodeGraph(DiGraph):
             for B in Q.nodes
         }
         nx.relabel_nodes(Q, block_relabelling, copy=False)
+
         for n, di in Q.nodes.items():
             Q.nodes[n].update({'src_line': src_map.get(n)})
 
@@ -200,18 +203,19 @@ class XBytecodeGraph(DiGraph):
         **graph_attrs: Any
     ) -> None:
         """
-        A CPython "bytecode"-aware directed graph representing the CPython
-        bytecode instruction stack of a Python method, generator, asynchronous
-        generator, coroutine, class, string of source code, or code
-        object (as returned by compile()).
+        A CPython "bytecode"-aware connected directed graph representing the
+        CPython bytecode instruction stack of a Python source code object,
+        which could be a source code fragment string, or a ``code`` object
+        object (as returned by compile()), or a function, class method or
+        callable.
         """
         self._code = None
         self._xbytecode = None
         self._source_code_graph = None
-        self._number_entry_points = 0
-        self._number_decision_points = 0
-        self._number_branch_points = 0
-        self._number_exit_points = 0
+        self._entry_points = None
+        self._decision_points = None
+        self._branch_points = None
+        self._exit_points = None
 
         if not (graph_data or code):
             super(self.__class__, self).__init__()
@@ -241,37 +245,53 @@ class XBytecodeGraph(DiGraph):
         self.add_edges_from(self.get_edges(instr_map=self.xbytecode.instr_map))
 
         it1, it2, it3, it4 = tee(self.xbytecode.instr_map.values(), 4)
-        self._number_entry_points = sum(1 for instr in it1 if instr.is_entry_point)
-        self._number_decision_points = sum(1 for instr in it2 if instr.is_decision_point)
-        self._number_branch_points = sum(1 for instr in it3 if instr.is_branch_point)
-        self._number_exit_points = sum(1 for instr in it4 if instr.is_exit_point)
+        self._entry_points = tuple(instr for instr in it1 if instr.is_entry_point)
+        self._decision_points = tuple(instr for instr in it2 if instr.is_decision_point)
+        self._branch_points = tuple(instr for instr in it3 if instr.is_branch_point)
+        self._exit_points = tuple(instr for instr in it4 if instr.is_exit_point)
 
         self._source_code_graph = self.__class__.get_source_code_graph(code=self.code)
 
     @property
-    def code(self):
+    def code(self) -> Union[str, CodeType, Callable]:
         return self._code
 
     @property
-    def xbytecode(self):
+    def xbytecode(self) -> XBytecode:
         return self._xbytecode
 
     @property
-    def source_code_graph(self):
+    def source_code_graph(self) -> nx.DiGraph:
         return self._source_code_graph
 
     @property
-    def number_entry_points(self):
-        return self._number_entry_points
+    def entry_points(self) -> Tuple[XInstruction]:
+        return self._entry_points
 
     @property
-    def number_decision_points(self):
-        return self._number_decision_points
+    def number_entry_points(self) -> int:
+        return len(self.entry_points)
 
     @property
-    def number_branch_points(self):
-        return self._number_branch_points
+    def decision_points(self) -> Tuple[XInstruction]:
+        return self._decision_points
 
     @property
-    def number_exit_points(self):
-        return self._number_exit_points
+    def number_decision_points(self) -> int:
+        return len(self.decision_points)
+
+    @property
+    def branch_points(self) -> Tuple[XInstruction]:
+        return self._branch_points
+
+    @property
+    def number_branch_points(self) -> int:
+        return len(self.branch_points)
+
+    @property
+    def exit_points(self) -> Tuple[XInstruction]:
+        return self._exit_points
+
+    @property
+    def number_exit_points(self) -> int:
+        return len(self.exit_points)
