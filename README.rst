@@ -1,7 +1,7 @@
 README
 ======
 
-This is an **experimental project** for calculating `cyclomatic complexity <https://en.wikipedia.org/wiki/Cyclomatic_complexity>`_ measures (CCM) for Python source code by representing the associated `CPython bytecode instructions <https://docs.python.org/3/library/dis.html#python-bytecode-instructions>`_ as a `(connected) digraph <https://en.wikipedia.org/wiki/Directed_graph>`_.
+This is an **experimental project** for calculating `cyclomatic complexity <https://en.wikipedia.org/wiki/Cyclomatic_complexity>`_ measures (CCM) for Python source code by representing the associated `CPython bytecode instructions <https://docs.python.org/3/library/dis.html#python-bytecode-instructions>`_ as a `(connected) digraph <https://en.wikipedia.org/wiki/Directed_graph>`_. It is also aimed at exploring applications of the bytecode graph representations of Python source code for unit testing.
 
 Method
 ------
@@ -136,11 +136,11 @@ The bytecode graph for :code:`sign` can be obtained quite simply as follows:
    In [12]: G.edges
    Out[12]: OutEdgeView([(0, 2), (2, 4), (4, 6), (6, 12), (6, 8), (12, 14), (8, 10), (10, 0), (14, 16), (16, 18), (18, 24), (18, 20), (24, 26), (20, 22), (22, 0), (26, 0)])
 
-**Note**: each node label is an instruction offset (the relative index of the instruction with respect to the complete, ordered sequence of all the bytecode instructions). The instruction map is an ordered dictionary keyed by tuples consisting of source line numbers and instruction offets, and values are :code:`ccm.xdis.XInstruction` objects. The instruction map can be obtained from the bytecode graph using the :code:`xbytecode.instr_map` nested attribute, e.g. for :code:`sign`:
+**Note**: each node label is an instruction offset (the relative index of the instruction with respect to the complete, ordered sequence of all the bytecode instructions). The instruction map is an ordered dictionary keyed by tuples consisting of source line numbers and instruction offets, and values are :code:`ccm.xdis.XInstruction` objects. The instruction map can be obtained from the bytecode graph using the :code:`xbytecode.instructions` attribute, e.g. for :code:`sign`:
 
 .. code-block:: python
 
-   In [13]: G.xbytecode.instr_map
+   In [13]: G.instructions
    Out[13]: 
    OrderedDict([((2, 0),
                  XInstruction(opname='LOAD_FAST', opcode=124, arg=0, argval='x', argrepr='x', offset=0, starts_line=2, is_entry_point=True, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=False)),
@@ -153,11 +153,11 @@ The bytecode graph for :code:`sign` can be obtained quite simply as follows:
 
 **Note**: the last edge :code:`(6, 26)`, connecting the last instruction, which is the only exit point, with the first instruction, which is the entry point, makes the digraph strongly connected.
 
-Each instruction object has a property named :code:`dis_line` which stores the :code:`dis.dis` console representation of the instruction, e.g.:
+Each instruction object (:code:`ccm.xdis.XInstruction`) has a property named :code:`dis_line` which stores the :code:`ccm.xdis.dis` console representation of the instruction, e.g.:
 
 .. code-block:: python
 
-   In [14]: G.xbytecode.instr_map[(2,0)].dis_line
+   In [14]: G.instructions[(2,0)].dis_line
    Out[14]: '  2           0 LOAD_FAST                0 (x)'
 
 The console printed versions of the instructions are more human readable, and so it is possible to quickly identify classified instructions such as branch points, decision points and exit points in this way, e.g. for :code:`sign`:
@@ -233,16 +233,16 @@ This means that for a given bytecode graph the CCMs, as defined above, will be a
    Out[23]: NodeView((0, 2, 4, 6, 12, 8, 10, 14, 16, 18, 24, 20, 22, 26))
 
    In [24]: G.edges
-   Out[25]: OutEdgeView([(0, 2), (2, 4), (4, 6), (6, 12), (6, 8), (12, 14), (8, 10), (10, 0), (14, 16), (16, 18), (18, 24), (18, 20), (24, 26), (20, 22), (22, 0), (26, 0)])
+   Out[24]: OutEdgeView([(0, 2), (2, 4), (4, 6), (6, 12), (6, 8), (12, 14), (8, 10), (10, 0), (14, 16), (16, 18), (18, 24), (18, 20), (24, 26), (20, 22), (22, 0), (26, 0)])
 
    In [25]: G.number_of_edges() - G.number_of_nodes() + 2
    Out[25]: 4
 
    In [26]: G.source_code_graph.nodes
-   Out[26]: NodeView((4, 6, 2, 3, 5))
+   Out[26]: NodeView((2, 3, 4, 5, 6))
 
    In [27]: G.source_code_graph.edges
-   Out[27]: OutEdgeView([(4, 6), (4, 5), (6, 2), (2, 4), (2, 3), (3, 2), (5, 2)])
+   Out[27]: OutEdgeView([(2, 4), (2, 3), (3, 2), (4, 6), (4, 5), (5, 2), (6, 2)])
 
    In [28]: G.source_code_graph.number_of_edges() - G.source_code_graph.number_of_nodes() + 2
    Out[28]: 4
@@ -260,25 +260,25 @@ The second example is an identity function for arbitrary arguments, with just a 
     2           0 LOAD_FAST                0 (x)
                 2 RETURN_VALUE
 
-   In [31]: H = XBytecodeGraph(code=identity)
+   In [32]: H = XBytecodeGraph(code=identity)
 
-   In [32]: H.nodes
-   Out[32]: NodeView((0, 2))
+   In [33]: H.nodes
+   Out[33]: NodeView((0, 2))
 
-   In [33]: H.edges
-   Out[33]: OutEdgeView([(0, 2), (2, 0)])
+   In [34]: H.edges
+   Out[34]: OutEdgeView([(0, 2), (2, 0)])
 
-   In [34]: H.number_of_edges() - H.number_of_nodes() + 2
-   Out[34]: 2
+   In [35]: H.number_of_edges() - H.number_of_nodes() + 2
+   Out[35]: 2
 
-   In [35]: H.source_code_graph.nodes
-   Out[35]: NodeView((2,))
+   In [36]: H.source_code_graph.nodes
+   Out[36]: NodeView((2,))
 
-   In [36]: H.source_code_graph.edges
-   Out[36]: OutEdgeView([(2, 2)])
+   In [37]: H.source_code_graph.edges
+   Out[37]: OutEdgeView([(2, 2)])
 
-   In [37]: H.source_code_graph.number_of_edges() - H.source_code_graph.number_of_nodes() + 2
-   Out[37]: 2
+   In [38]: H.source_code_graph.number_of_edges() - H.source_code_graph.number_of_nodes() + 2
+   Out[38]: 2
 
 In both these examples, the CCMs computed using the bytecode graph and source code graph were identical - this is because the decision points in both represent simple conditions involving a comparison of two values, and do not consist of a compound condition composed of two or more comparisons. With a decision point involving a simple condition, both branches of the associated branching instruction will lead to instructions in other blocks. This is not the case where a decision point involves a compound condition.
 
@@ -286,12 +286,12 @@ Here is a third example involving a function with a decision point involving a c
 
 .. code-block:: python
 
-   In [38]: def nonzero(x):
+   In [39]: def nonzero(x):
         ...:     if x < 0 or x > 0 :
         ...:         return True
         ...:     return False
 
-   In [39]: xdis(nonzero)
+   In [40]: xdis(nonzero)
     2           0 LOAD_FAST                0 (x)
                 2 LOAD_CONST               1 (0)
                 4 COMPARE_OP               0 (<)
@@ -307,35 +307,43 @@ Here is a third example involving a function with a decision point involving a c
     4     >>   20 LOAD_CONST               3 (False)
                22 RETURN_VALUE
 
-   In [40]: Z = XBytecodeGraph(code=nonzero)
+   In [41]: Z = XBytecodeGraph(code=nonzero)
 
-   In [41]: Z.number_of_edges() - Z.number_of_nodes() + 2
-   Out[41]: 4
+   In [42]: Z.number_of_edges() - Z.number_of_nodes() + 2
+   Out[42]: 4
 
-   In [42]: Z.source_code_graph.number_of_edges() - Z.source_code_graph.number_of_nodes() + 2
-   Out[42]: 3
+   In [43]: Z.source_code_graph.number_of_edges() - Z.source_code_graph.number_of_nodes() + 2
+   Out[43]: 3
 
-The instructions which are entry points, decision points, branch points and exit points can be accessed using attributes:
+From the bytecode graph the instructions which represent entry points, decision points, branch points and exit points can be easily accessed using dictionary attributes (the dicts are keyed by tuples consisting of the source line and instruction offset):
 
 .. code-block:: python
 
-   In [43]: Z.entry_points
-   Out[43]: (XInstruction(opname='LOAD_FAST', opcode=124, arg=0, argval='x', argrepr='x', offset=0, starts_line=2, is_entry_point=True, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=False),)
-
-   In [44]: Z.decision_points
+   In [44]: Z.entry_points
    Out[44]: 
-   (XInstruction(opname='COMPARE_OP', opcode=107, arg=0, argval='<', argrepr='<', offset=4, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=True, is_branch_point=False, is_exit_point=False),
-    XInstruction(opname='COMPARE_OP', opcode=107, arg=4, argval='>', argrepr='>', offset=12, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=True, is_branch_point=False, is_exit_point=False))
+   OrderedDict([((2, 0),
+                 XInstruction(opname='LOAD_FAST', opcode=124, arg=0, argval='x', argrepr='x', offset=0, starts_line=2, is_entry_point=True, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=False))])
 
-   In [45]: Z.branch_points
+   In [45]: Z.decision_points
    Out[45]: 
-   (XInstruction(opname='POP_JUMP_IF_TRUE', opcode=115, arg=16, argval=16, argrepr='', offset=6, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=True, is_exit_point=False),
-    XInstruction(opname='POP_JUMP_IF_FALSE', opcode=114, arg=20, argval=20, argrepr='', offset=14, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=True, is_exit_point=False))
+   OrderedDict([((2, 4),
+                 XInstruction(opname='COMPARE_OP', opcode=107, arg=0, argval='<', argrepr='<', offset=4, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=True, is_branch_point=False, is_exit_point=False)),
+                ((2, 12),
+                 XInstruction(opname='COMPARE_OP', opcode=107, arg=4, argval='>', argrepr='>', offset=12, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=True, is_branch_point=False, is_exit_point=False))])
 
-   In [46]: Z.exit_points
+   In [46]: Z.branch_points
    Out[46]: 
-   (XInstruction(opname='RETURN_VALUE', opcode=83, arg=None, argval=None, argrepr='', offset=18, starts_line=3, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=True),
-    XInstruction(opname='RETURN_VALUE', opcode=83, arg=None, argval=None, argrepr='', offset=22, starts_line=4, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=True))
+   OrderedDict([((2, 6),
+                 XInstruction(opname='POP_JUMP_IF_TRUE', opcode=115, arg=16, argval=16, argrepr='', offset=6, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=True, is_exit_point=False)),
+                ((2, 14),
+                 XInstruction(opname='POP_JUMP_IF_FALSE', opcode=114, arg=20, argval=20, argrepr='', offset=14, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=True, is_exit_point=False))])
+
+   In [47]: Z.exit_points
+   Out[47]: 
+   OrderedDict([((3, 18),
+                 XInstruction(opname='RETURN_VALUE', opcode=83, arg=None, argval=None, argrepr='', offset=18, starts_line=3, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=True)),
+                ((4, 22),
+                 XInstruction(opname='RETURN_VALUE', opcode=83, arg=None, argval=None, argrepr='', offset=22, starts_line=4, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=True))])
 
 Limitations
 -----------

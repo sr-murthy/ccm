@@ -187,6 +187,11 @@ class XBytecodeGraph(DiGraph):
         }
         nx.relabel_nodes(Q, block_relabelling, copy=False)
 
+        _Q = nx.DiGraph()
+        _Q.add_nodes_from(sorted(Q.nodes))
+        _Q.add_edges_from(Q.edges)
+        Q = _Q
+
         for n, di in Q.nodes.items():
             Q.nodes[n].update({'src_line': src_map.get(n)})
 
@@ -245,10 +250,10 @@ class XBytecodeGraph(DiGraph):
         self.add_edges_from(self.get_edges(instr_map=self.xbytecode.instr_map))
 
         it1, it2, it3, it4 = tee(self.xbytecode.instr_map.values(), 4)
-        self._entry_points = tuple(instr for instr in it1 if instr.is_entry_point)
-        self._decision_points = tuple(instr for instr in it2 if instr.is_decision_point)
-        self._branch_points = tuple(instr for instr in it3 if instr.is_branch_point)
-        self._exit_points = tuple(instr for instr in it4 if instr.is_exit_point)
+        self._entry_points = OrderedDict([((instr.starts_line, instr.offset), instr) for instr in it1 if instr.is_entry_point])
+        self._decision_points = OrderedDict([((instr.starts_line, instr.offset), instr) for instr in it2 if instr.is_decision_point])
+        self._branch_points = OrderedDict([((instr.starts_line, instr.offset), instr) for instr in it3 if instr.is_branch_point])
+        self._exit_points = OrderedDict([((instr.starts_line, instr.offset), instr) for instr in it4 if instr.is_exit_point])
 
         self._source_code_graph = self.__class__.get_source_code_graph(code=self.code)
 
@@ -265,7 +270,11 @@ class XBytecodeGraph(DiGraph):
         return self._source_code_graph
 
     @property
-    def entry_points(self) -> Tuple[XInstruction]:
+    def instructions(self) -> DictType[Tuple[int, int], XInstruction]:
+        return self.xbytecode.instr_map
+    
+    @property
+    def entry_points(self) -> DictType[Tuple[int, int], XInstruction]:
         return self._entry_points
 
     @property
@@ -273,7 +282,7 @@ class XBytecodeGraph(DiGraph):
         return len(self.entry_points)
 
     @property
-    def decision_points(self) -> Tuple[XInstruction]:
+    def decision_points(self) -> DictType[Tuple[int, int], XInstruction]:
         return self._decision_points
 
     @property
@@ -281,7 +290,7 @@ class XBytecodeGraph(DiGraph):
         return len(self.decision_points)
 
     @property
-    def branch_points(self) -> Tuple[XInstruction]:
+    def branch_points(self) -> DictType[Tuple[int, int], XInstruction]:
         return self._branch_points
 
     @property
@@ -289,7 +298,7 @@ class XBytecodeGraph(DiGraph):
         return len(self.branch_points)
 
     @property
-    def exit_points(self) -> Tuple[XInstruction]:
+    def exit_points(self) -> DictType[Tuple[int, int], XInstruction]:
         return self._exit_points
 
     @property
