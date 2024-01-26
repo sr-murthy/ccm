@@ -215,7 +215,7 @@ The bytecode graph and the source code graph for functions and class methods wil
 
 * As the source code graph is the quotient of the bytecode graph under the equivalence relation described above, its nodes correspond to blocks of bytecode instructions associated with a unique source line, and edges correspond to edges between instructions in different instruction blocks associated with different source lines.
 
-* If :code:`n` is the number of instruction blocks (same as the number of source lines), and for a given block :code:`B` we have :code:`D(B)` decision points and :code:`X(B)` exit points, then the source code graph will have :code:`n` nodes and at least :code:`Sum(D(B) + X(B))` where this is a sum over all instructionsblocks :code:`B`.
+* If :code:`n` is the number of instruction blocks (same as the number of source lines), and for a given block :code:`B` we have :code:`D(B)` decision points and :code:`X(B)` exit points, then the source code graph will have :code:`n` nodes and at least :code:`Sum(D(B) + X(B))` edges, where this is a sum over all instruction blocks :code:`B`.
 
 * There is only one entry point in a bytecode graph, because it is defined as the first bytecode instruction (one with the unique offset :code:`0`). Thus there is only one source line in the source code graph associated with this entry point, namely, the first source line in the body of the source code object.
 
@@ -223,7 +223,7 @@ The bytecode graph and the source code graph for functions and class methods wil
 
 * The bytecode graph is (strongly) connected with only one component, namely, itself, which means the source code graph is also (strongly) connected with only one component.
 
-This means that for source code graphs the CCMs, as defined above, will be a lower bound for the CCMs calculated using the bytecode graph. Here are three examples for McCabe complexity, using simple functions. First, the :code:`sign` function, which has five source lines (excluding the signature):
+This means that for a given bytecode graph the CCMs, as defined above, will be an upper bound for the CCMs calculated using the associated source code graph. Here are three examples for McCabe complexity, using simple functions. First, the :code:`sign` function, which has five source lines (excluding the signature):
 
 .. code-block:: python
 
@@ -280,18 +280,18 @@ The second example is an identity function for arbitrary arguments, with just a 
    In [37]: H.source_code_graph.number_of_edges() - H.source_code_graph.number_of_nodes() + 2
    Out[37]: 2
 
-In both these examples, the CCMs computed using the bytecode graph and source code graph were identical - this is because the decision points in both represent simple conditions involving a comparison of two values, and do not consist of a compound condition composed of two or more comparisons. With a decision point involving a simple condition, both branches of the associated branching instruction will be instructions in other blocks. This is not the case where a decision point involves a compound condition.
+In both these examples, the CCMs computed using the bytecode graph and source code graph were identical - this is because the decision points in both represent simple conditions involving a comparison of two values, and do not consist of a compound condition composed of two or more comparisons. With a decision point involving a simple condition, both branches of the associated branching instruction will lead to instructions in other blocks. This is not the case where a decision point involves a compound condition.
 
 Here is a third example involving a function with a decision point involving a compound condition, where the CCMs from the bytecode graph and source code graph differ.
 
 .. code-block:: python
 
    In [38]: def nonzero(x):
-       ...:     if x < 0 or x > 0 :
-       ...:         return True
-       ...:     return False
+        ...:     if x < 0 or x > 0 :
+        ...:         return True
+        ...:     return False
 
-   In [38]: xdis(nonzero)
+   In [39]: xdis(nonzero)
     2           0 LOAD_FAST                0 (x)
                 2 LOAD_CONST               1 (0)
                 4 COMPARE_OP               0 (<)
@@ -307,13 +307,35 @@ Here is a third example involving a function with a decision point involving a c
     4     >>   20 LOAD_CONST               3 (False)
                22 RETURN_VALUE
 
-   In [39]: Z = XBytecodeGraph(code=nonzero)
+   In [40]: Z = XBytecodeGraph(code=nonzero)
 
-   In [40]: Z.number_of_edges() - Z.number_of_nodes() + 2
-   Out[40]: 4
+   In [41]: Z.number_of_edges() - Z.number_of_nodes() + 2
+   Out[41]: 4
 
-   In [41]: Z.source_code_graph.number_of_edges() - Z.source_code_graph.number_of_nodes() + 2
-   Out[41]: 3
+   In [42]: Z.source_code_graph.number_of_edges() - Z.source_code_graph.number_of_nodes() + 2
+   Out[42]: 3
+
+The instructions which are entry points, decision points, branch points and exit points can be accessed using attributes:
+
+.. code-block:: python
+
+   In [43]: Z.entry_points
+   Out[43]: (XInstruction(opname='LOAD_FAST', opcode=124, arg=0, argval='x', argrepr='x', offset=0, starts_line=2, is_entry_point=True, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=False),)
+
+   In [44]: Z.decision_points
+   Out[44]: 
+   (XInstruction(opname='COMPARE_OP', opcode=107, arg=0, argval='<', argrepr='<', offset=4, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=True, is_branch_point=False, is_exit_point=False),
+    XInstruction(opname='COMPARE_OP', opcode=107, arg=4, argval='>', argrepr='>', offset=12, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=True, is_branch_point=False, is_exit_point=False))
+
+   In [45]: Z.branch_points
+   Out[45]: 
+   (XInstruction(opname='POP_JUMP_IF_TRUE', opcode=115, arg=16, argval=16, argrepr='', offset=6, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=True, is_exit_point=False),
+    XInstruction(opname='POP_JUMP_IF_FALSE', opcode=114, arg=20, argval=20, argrepr='', offset=14, starts_line=2, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=True, is_exit_point=False))
+
+   In [46]: Z.exit_points
+   Out[46]: 
+   (XInstruction(opname='RETURN_VALUE', opcode=83, arg=None, argval=None, argrepr='', offset=18, starts_line=3, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=True),
+    XInstruction(opname='RETURN_VALUE', opcode=83, arg=None, argval=None, argrepr='', offset=22, starts_line=4, is_entry_point=False, is_jump_target=False, is_decision_point=False, is_branch_point=False, is_exit_point=True))
 
 Limitations
 -----------
