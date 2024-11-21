@@ -1,6 +1,11 @@
 README
 ======
 
+.. note::
+
+   The default branch is now :code:`main`. If your clone contains the old :code:`master` branch, please rename and repoint your :code:`master` remote to :code:`main`.
+
+
 This is an **experimental project** for calculating `cyclomatic complexity <https://en.wikipedia.org/wiki/Cyclomatic_complexity>`_ measures (CCM) for Python source code by representing the associated `CPython bytecode instructions <https://docs.python.org/3/library/dis.html#python-bytecode-instructions>`_ as a `(connected) digraph <https://en.wikipedia.org/wiki/Directed_graph>`_. It is also aimed at exploring applications of the bytecode graph representations of Python source code for unit testing.
 
 Method
