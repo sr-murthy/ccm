@@ -1,0 +1,182 @@
+[project]
+
+# PEP 621 project metadata
+# See https://www.python.org/dev/peps/pep-0621/
+
+# For the standard reference on Python packaging, including using
+# ``pyproject.toml`` for build definition and configuration see:
+#
+#     https://packaging.python.org/en/latest/tutorials/packaging-projects/
+#
+name = "ccm"
+description = "Cyclomatic complexity toolkit for Python"
+
+authors = [
+    {name = "S. R. Murthy", email = "s.murthy@tutanota.com"},
+    {name = "Sandeep Murthy", email = "s.murthy@tutanota.com"},
+]
+
+maintainers = [
+  {name = "S. R. Murthy", email = "s.murthy@tutanota.com"}
+]
+
+dynamic = ["version"]
+
+requires-python = ">=3.7"
+
+license = {text = "MPL"}
+
+dependencies = [
+    "matplotlib",
+    "networkx",
+    "pygraphviz",
+    "scipy",
+    "pdm",
+]
+
+readme = "README.md"
+
+keywords = [
+    "complexity",
+    "cyclomatic complexity",
+    "bytecode",
+    "directed graphs",
+    "directed acyclic graphs",
+]
+
+classifiers = [
+        "Environment :: Console",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Development Status :: 5 - Production/Stable",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+]
+version = "0.1.0"
+
+[project.optional-dependencies]
+user = [
+    "jupyter",
+]
+
+[project.scripts]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project.urls]
+Homepage = "https://github.com/sr-murthy/ccm"
+Documentation = "https://github.com/sr-murthy/ccm"
+Repository = "https://github.com/sr-murthy/ccm"
+
+# For working with PDM, including configuration and usage see:
+#
+#     https://pdm.fming.dev/latest/
+#     https://pdm.fming.dev/latest/reference/pep621/
+#     https://pdm.fming.dev/latest/reference/cli/
+#
+[tool.pdm]
+distribution = true
+
+[tool.pdm.build]
+package-dir = "src"
+includes = [
+    "src/ccm",
+]
+# File patterns to exclude, the paths are relative to the project root.
+excludes = [
+    "docs",
+    "build",
+    "dist",
+    "tests",
+    ".pytest_cache",
+    "*.pyc",
+    "*.env",
+    "*__pycache__*",
+]
+source-includes = [
+    "README.rst",
+]
+editable-backend = "path"
+
+[tool.pdm.dev-dependencies]
+build = [
+    "pip>=23.1.2",
+]
+dev = [
+    "pytest",
+    "coverage",
+    "ipython",
+    "ipdb",
+    "virtualenv",
+    "ruff",
+]
+
+[tool.pdm.scripts]
+
+[tool.pdm.version]
+source = "file"
+path = "src/ccm/version.py"
+
+# For ``pytest`` configuration, including TOML-specific configuration see:
+#
+#     https://docs.pytest.org/en/7.3.x/reference/customize.html#configuration
+#     https://docs.pytest.org/en/7.3.x/reference/customize.html#pyproject-toml
+#
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+addopts = """\
+    --cache-clear 
+    --code-highlight=yes \
+    --color=yes \
+    --cov=src \
+    --cov-config=pyproject.toml \
+    --cov-report=xml \
+    --cov-report=html \
+    --dist worksteal \
+    --numprocesses=auto \
+    -ra \
+    --tb=native \
+    --verbosity=3\
+"""
+filterwarnings = [
+    "ignore::DeprecationWarning"
+]
+python_files = ["test_*.py",]
+python_classes = ["Test", "Acceptance",]
+python_functions = ["test"]
+testpaths = [
+    "tests/",
+]
+markers = [
+    # Test tags/labels/markers - not using any currently
+]
+
+# For ``coverage`` configuration see the reference from version ``7.4.1``:
+#
+#     https://coverage.readthedocs.io/en/7.4.1/config.html
+#
+[tool.coverage.run]
+branch = true
+omit = [
+    "./build",
+    "./dist",
+    "./docs",
+    "*/tests*",
+    ".pytest_cache",
+    "*.pyc",
+    "*.env",
+    "*__pycache__*",
+    "version.py"
+]
+source = ["src"]
+
+[tool.coverage.report]
+precision = 3
+show_missing = true
+skip_covered = true
+skip_empty = true
+sort = "Name"
