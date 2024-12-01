@@ -6,7 +6,7 @@ README
    The default branch is now :code:`main`. If your clone contains the old :code:`master` branch, please rename and repoint your :code:`master` remote to :code:`main`.
 
 
-This is an **experimental project** for calculating `cyclomatic complexity <https://en.wikipedia.org/wiki/Cyclomatic_complexity>`_ measures (CCM) for Python source code by representing the associated `CPython bytecode instructions <https://docs.python.org/3/library/dis.html#python-bytecode-instructions>`_ as a `(connected) digraph <https://en.wikipedia.org/wiki/Directed_graph>`_. It is also aimed at exploring applications of the bytecode graph representations of Python source code for unit testing.
+This is an **experimental project** for exploring the analysis of the complexity of Python project source code in terms of `cyclomatic complexity <https://en.wikipedia.org/wiki/Cyclomatic_complexity>`_ via directed graph representations of the associated `CPython bytecode instructions <https://docs.python.org/3/library/dis.html#python-bytecode-instructions>`_. These directed graph representations have structural properties that can describe the complexity of the source code, which can be useful in a variety of applications, including unit testing.
 
 Method
 ------
@@ -30,7 +30,7 @@ There are several CCMs that can be calculated with this approach:
 5. Generalised Henderson-Sellers & Tegarden complexity: :code:`#{edges} - #{nodes} + #{exit points per connected component} + 2)`
 6. Harrison complexity: :code:`#{decision points} - #{exit points} + 2)`
 
-A related measure, useful for software testing, is the number of **linearly independent paths** (so-called `basis paths <https://en.wikipedia.org/wiki/Basis_path_testing>`_) in the `directed acyclic graph <https://en.wikipedia.org/wiki/Directed_acyclic_graph>`_ (DAG) representation of a function's control flow. This number serves as an upper bound on the number of test cases required to cover all possible execution paths that the function could take. This will be described in more detail later.
+A related measure, useful for software testing, is the number of **linearly independent paths** (so-called `basis paths <https://en.wikipedia.org/wiki/Basis_path_testing>`_) in the `directed acyclic graph <https://en.wikipedia.org/wiki/Directed_acyclic_graph>`_ (DAG) representation of a function's control flow. This number serves as an upper bound on the number of test cases required to cover all possible execution paths that the function could take, as used in test-driven development (TDD), and also a lower bound on the number of all test cases needed to cover all possible behaviours of the function, as used in behaviour-driven development (BDD). This will be described in more detail later.
 
 **Note**: As noted `here <https://doi.org/10.1007/978-0-387-34848-3_51>`_ the standard McCabe complexity measure (1) only applies to individual functions or methods, which can be represented as a connected digraph with a single component. A class with more than one method, or a module with multiple functions and/or classes, is usually representable as a connected graph which is a disjoint union of components, and in these cases the generalised McCabe complexity (2), the Henderson-Sellers complexity (3), or related generalised measures, should be used instead.
 
