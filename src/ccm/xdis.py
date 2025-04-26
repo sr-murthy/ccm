@@ -1,5 +1,6 @@
 """
-    Extension of the ``dis`` module in the Python standard library.
+    MODIFIED EXTENSION of the Python ``dis`` standard library (v3.7)
+    
     Disassembler of Python byte code into mnemonics - uses a custom extension
     ``XInstruction`` of the ``dis.Instruction`` class to add properties of
     whether an instruction represents a decision point, a branching point or
