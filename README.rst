@@ -1,10 +1,7 @@
 README
 ======
 
-.. note::
-
-   The default branch is now :code:`main`. If your clone contains the old :code:`master` branch, please rename and repoint your :code:`master` remote to :code:`main`.
-
+NOTE: The default branch is now :code:`main`. If your clone contains the old :code:`master` branch, please rename and repoint your :code:`master` remote to :code:`main`.
 
 This is an **experimental project** for exploring the analysis of the complexity of Python project source code in terms of `cyclomatic complexity <https://en.wikipedia.org/wiki/Cyclomatic_complexity>`_ via directed graph representations of the associated `CPython bytecode instructions <https://docs.python.org/3/library/dis.html#python-bytecode-instructions>`_. These directed graph representations have structural properties that can describe the complexity of the source code, which can be useful in a variety of applications, including unit testing.
 
@@ -42,8 +39,9 @@ Some examples are given below, to illustrate the concept and measures of cycloma
 First, consider the following simple Python implementation of the `sign function <https://en.wikipedia.org/wiki/Sign_function>`_, for determining whether a given number (integer or float) is negative, zero, or positive:
 
 .. code-block:: python
+   import typing
 
-   def sign(x: int | float) -> typing.Literal[-1, 0, 1]:
+   def sign(x: typing.Union[int, float]) -> int:
        if x < 0:
            return -1
        if x == 0:
@@ -99,7 +97,7 @@ Here's an iPython session using the sign function as an example.
 
    In [1]: from ccm.complexity import *
 
-   In [2]: def sign(x) :
+   In [2]: def sign(x: typing.Union[int, float]) -> int:
       ...:     if x < 0:
       ...:         return -1
       ...:     if x == 0:
@@ -258,7 +256,7 @@ The second example is an identity function for arbitrary arguments, with just a 
 
    In [29]: from ccm.xdis import dis as xdis
 
-   In [30]: def identity(x):
+   In [30]: def identity(x: typing.Any) -> typing.Any:
         ...:    return x
 
    In [30]: xdis(identity)
@@ -291,7 +289,7 @@ Here is a third example involving a function with a decision point involving a c
 
 .. code-block:: python
 
-   In [39]: def nonzero(x):
+   In [39]: def nonzero(x: typing.Union[int, float]) -> bool:
         ...:     if x < 0 or x > 0 :
         ...:         return True
         ...:     return False
