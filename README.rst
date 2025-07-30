@@ -1,13 +1,9 @@
 README
 ======
 
-.. note::
+**NOTE #1**: The default branch is now :code:`main`. If your clone contains the old :code:`master` branch, please rename and repoint your :code:`master` remote to :code:`main`.
 
-   The default branch is now :code:`main`. If your clone contains the old :code:`master` branch, please rename and repoint your :code:`master` remote to :code:`main`.
-
-.. note::
-
-   The project has now been archived (on July 26, 2025). It was first started back in 2020 as a proof-of-concept for ideas and  implementations of control flow graphs for Python source code using CPython bytecode. Having achieved this, however, time and circumstances do not permit the author to develop this project further. Feel free to borrow from the project, and adapt it to your needs.
+**NOTE #2**: The project has now been archived (on July 26, 2025). It was first started back in 2020 as a proof-of-concept for ideas and  implementations of control flow graphs for Python source code using CPython bytecode. Having achieved this, however, time and circumstances do not permit the author to develop this project further. Feel free to borrow from the project, and adapt it to your needs.
 
 This is an **experimental project** for exploring the analysis of the complexity of Python project source code in terms of `cyclomatic complexity <https://en.wikipedia.org/wiki/Cyclomatic_complexity>`_ via directed graph representations of the associated `CPython bytecode instructions <https://docs.python.org/3/library/dis.html#python-bytecode-instructions>`_. These directed graph representations have structural properties that can describe the complexity of the source code, which can be useful in a variety of applications, including unit testing.
 
